@@ -1,2597 +1,1328 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เกมไพ่ดัมมี่ไทย (Thai Dummy Online & Smart Hint)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Prompt', sans-serif;
-            background: radial-gradient(circle at center, #14532d 0%, #064e3b 65%, #022c22 100%);
-            user-select: none;
-            overflow-x: hidden;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            height: 6px;
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.35);
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.55);
-        }
-
-        /* Playing Card Styling */
-        .playing-card {
-            width: 66px;
-            height: 96px;
-            background: linear-gradient(145deg, #ffffff 0%, #f3f4f6 100%);
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.8);
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            cursor: pointer;
-            border: 2px solid #e5e7eb;
-            flex-shrink: 0;
-        }
-
-        @media (min-width: 768px) {
-            .playing-card {
-                width: 76px;
-                height: 110px;
-            }
-        }
-
-        .playing-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
-        }
-
-        .playing-card.selected {
-            transform: translateY(-18px) scale(1.04);
-            border-color: #fbbf24 !important;
-            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.75), 0 12px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        .playing-card.discard-selected {
-            transform: translateY(-12px) scale(1.04);
-            border-color: #38bdf8 !important;
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.8), 0 10px 16px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Smart Assistant Visual Highlights */
-        .playing-card.hint-pickup-glow {
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.6), 0 6px 14px rgba(16, 185, 129, 0.4);
-        }
-        .playing-card.hint-layoff-glow {
-            border-color: #a855f7;
-            box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.6), 0 6px 14px rgba(168, 85, 247, 0.35);
-        }
-        .playing-card.hint-meld-glow {
-            border-color: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.55);
-        }
-        .playing-card.hint-danger-glow {
-            border-color: #f43f5e;
-        }
-
-        .playing-card.small-card {
-            width: 46px;
-            height: 68px;
-            border-radius: 6px;
-            cursor: default;
-        }
-        .playing-card.small-card:hover {
-            transform: none;
-        }
-
-        .card-back {
-            background: repeating-linear-gradient(
-                45deg,
-                #1e3a8a,
-                #1e3a8a 6px,
-                #1d4ed8 6px,
-                #1d4ed8 12px
-            );
-            border: 3px solid #f8fafc;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-        }
-
-        .meld-box {
-            transition: all 0.2s ease;
-        }
-        .meld-box.selectable-meld:hover {
-            border-color: #fbbf24;
-            background-color: rgba(251, 191, 36, 0.15);
-            cursor: pointer;
-        }
-        .meld-box.selected-meld {
-            border-color: #fbbf24;
-            background-color: rgba(251, 191, 36, 0.25);
-            box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
-        }
-        .meld-box.hint-target-meld {
-            border-color: #c084fc;
-            background-color: rgba(168, 85, 247, 0.25);
-            box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
-        }
-
-        /* Game Button Effects */
-        .btn-game {
-            transition: all 0.15s ease;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.3);
-        }
-        .btn-game:active:not(:disabled) {
-            transform: translateY(3px);
-            box-shadow: 0 1px 0 rgba(0,0,0,0.3);
-        }
-        .btn-game:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(40%);
-        }
-
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
-        }
-        .active-turn-glow {
-            animation: pulse-ring 2s infinite;
-            border-color: #facc15 !important;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ดัมมี่ไทย ออนไลน์ (Thai Dummy Online)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Kanit', sans-serif;
+      background: radial-gradient(circle at center, #0f3823 0%, #071f12 100%);
+      color: #f8fafc;
+      user-select: none;
+      overflow-x: hidden;
+    }
+    .card {
+      width: 58px;
+      height: 84px;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.45);
+      display: inline-flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4px 6px;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+      position: relative;
+      border: 2px solid #cbd5e1;
+      flex-shrink: 0;
+    }
+    @media (min-width: 768px) {
+      .card { width: 66px; height: 96px; }
+    }
+    .card:hover { transform: translateY(-6px); }
+    .card.selected {
+      transform: translateY(-14px);
+      border-color: #facc15;
+      box-shadow: 0 0 15px rgba(250, 204, 21, 0.85);
+    }
+    .card.hint-meld {
+      border-color: #34d399;
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.75);
+    }
+    .card.hint-layoff {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.75);
+    }
+    .card.hint-danger {
+      border-color: #f87171;
+    }
+    .card.speto {
+      background: linear-gradient(145deg, #ffffff 65%, #fef3c7 100%);
+    }
+    .suit-red { color: #dc2626; }
+    .suit-black { color: #0f172a; }
+    .badge-top {
+      position: absolute;
+      top: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 999px;
+      white-space: nowrap;
+      font-weight: 700;
+      z-index: 10;
+    }
+    .badge-bottom {
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 999px;
+      white-space: nowrap;
+      font-weight: 700;
+      z-index: 10;
+    }
+    .meld-box {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1.5px dashed rgba(148, 163, 184, 0.4);
+      border-radius: 10px;
+      padding: 6px;
+      transition: all 0.2s;
+    }
+    .meld-box.active-target {
+      border: 2px solid #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      cursor: pointer;
+    }
+  </style>
 </head>
-<body class="text-white min-h-screen flex flex-col justify-between p-2 md:p-3">
+<body class="min-h-screen flex flex-col justify-between p-2 md:p-4">
 
-    <!-- Top Header & Controls -->
-    <header class="flex flex-wrap items-center justify-between gap-2 bg-black/45 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 shadow-lg z-20">
-        <div class="flex items-center gap-2.5">
-            <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-bold text-xl shadow">
-                ♠
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-base md:text-lg font-bold tracking-wide text-amber-300">ดัมมี่ไทย</h1>
-                    <span id="modeBadge" class="text-[11px] bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full font-medium">
-                        โหมดเล่นกับบอท
-                    </span>
-                    <button id="roomCodeHeaderBadge" onclick="copyRoomCode()" class="hidden items-center gap-1.5 text-[11px] bg-sky-500/25 hover:bg-sky-500/40 text-sky-200 border border-sky-400/40 px-2.5 py-0.5 rounded-full font-semibold transition" title="คลิกเพื่อคัดลอกรหัสห้อง">
-                        <i class="fa-solid fa-key text-amber-300"></i> ห้อง: <span id="headerRoomCodeText">----</span>
-                        <i class="fa-regular fa-copy text-[10px]"></i>
-                    </button>
-                </div>
-                <p id="turnStatusBanner" class="text-xs text-emerald-200 font-light">รอเริ่มเกม...</p>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2 flex-wrap">
-            <!-- Toggleable Smart Play Assistant Switch -->
-            <button id="btnToggleHint" onclick="toggleSmartAssistant()" class="px-3 py-1.5 rounded-xl text-xs md:text-sm font-semibold border transition flex items-center gap-2 shadow bg-amber-400/20 border-amber-400 text-amber-200">
-                <i class="fa-solid fa-lightbulb text-amber-300"></i>
-                <span>ตัวช่วยแนะนำ: <strong id="hintStatusText" class="text-amber-300">เปิด</strong></span>
-            </button>
-
-            <!-- Bot Count Selector (Only in Single Player Mode) -->
-            <div id="botSelectorWrapper" class="flex items-center bg-white/10 rounded-xl px-2.5 py-1 text-xs border border-white/10">
-                <span class="text-emerald-200 mr-1.5"><i class="fa-solid fa-robot mr-1"></i>บอท:</span>
-                <select id="botCountSelect" onchange="startSinglePlayerGame()" class="bg-transparent text-white font-semibold focus:outline-none cursor-pointer">
-                    <option value="1" class="bg-emerald-950">1 คน</option>
-                    <option value="2" class="bg-emerald-950" selected>2 คน</option>
-                    <option value="3" class="bg-emerald-950">3 คน</option>
-                </select>
-            </div>
-
-            <!-- Open Online / Mode Lobby Modal -->
-            <button onclick="openLobbyModal()" class="bg-sky-600/80 hover:bg-sky-500 text-white px-3 py-1.5 rounded-xl text-xs md:text-sm border border-sky-400/30 transition flex items-center gap-1.5 font-medium shadow">
-                <i class="fa-solid fa-users"></i> เล่นกับเพื่อน / ห้องออนไลน์
-            </button>
-
-            <button onclick="toggleRulesModal(true)" class="bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 px-2.5 py-1.5 rounded-xl text-xs md:text-sm border border-emerald-500/30 transition flex items-center gap-1">
-                <i class="fa-solid fa-circle-question text-amber-300"></i> <span class="hidden sm:inline">กติกา</span>
-            </button>
-
-            <button id="btnRestartGame" onclick="handleRestartClick()" class="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-semibold px-3 py-1.5 rounded-xl text-xs md:text-sm shadow transition flex items-center gap-1">
-                <i class="fa-solid fa-rotate-right"></i> เริ่มใหม่
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Casino Table Area -->
-    <main class="flex-1 flex flex-col justify-between gap-2.5 my-2 max-w-7xl w-full mx-auto">
-
-        <!-- Opponents Section (Other Players / AI Bots) -->
-        <section id="opponentsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <!-- Dynamic Opponents Rendered via JS -->
-        </section>
-
-        <!-- Center Table: Draw Deck, Discard Pile, and Game Log -->
-        <section class="grid grid-cols-1 lg:grid-cols-4 gap-2.5 items-stretch my-auto">
-            
-            <!-- Left/Center: Deck & Horizontal Discard Pile (Spans 3 columns) -->
-            <div class="lg:col-span-3 bg-black/25 backdrop-blur-sm rounded-3xl p-3 md:p-4 border border-white/15 shadow-inner flex flex-col justify-between gap-2.5">
-                
-                <div class="flex flex-col md:flex-row items-center gap-4">
-                    <!-- Draw Deck (กองจั่ว) -->
-                    <div class="flex flex-col items-center">
-                        <span class="text-xs font-medium text-emerald-200 mb-1">กองจั่ว (<span id="deckCount">0</span> ใบ)</span>
-                        <div id="drawDeckBtn" onclick="handleDrawCard()" class="playing-card card-back flex flex-col items-center justify-center group cursor-pointer relative select-none" title="คลิกเพื่อจั่วไพ่ 1 ใบ">
-                            <div class="w-10 h-14 rounded border border-white/30 flex flex-col items-center justify-center bg-blue-950/70">
-                                <span class="text-lg font-bold text-amber-300" id="deckCountBadge">52</span>
-                                <span class="text-[10px] text-blue-200">จั่วไพ่</span>
-                            </div>
-                            <div id="drawPromptBadge" class="hidden group-hover:flex absolute -top-3 bg-amber-400 text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                                คลิกจั่ว
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Divider -->
-                    <div class="hidden md:block h-24 w-px bg-white/15"></div>
-
-                    <!-- Discard Pile (กองกลาง / ไพ่หัว) -->
-                    <div class="flex-1 w-full overflow-hidden flex flex-col">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs md:text-sm font-medium text-amber-200 flex items-center gap-1.5">
-                                <i class="fa-solid fa-layer-group"></i> กองทิ้งกลางโต๊ะ 
-                                <span class="text-[11px] text-emerald-200 font-normal hidden sm:inline">(คลิกเลือกไพ่ในกองคู่กับไพ่บนมือ 2+ ใบเพื่อ "เก็บเกิด")</span>
-                            </span>
-                            <span id="discardTargetHint" class="text-xs text-sky-300 font-medium hidden">
-                                เลือกไพ่เป้าหมายแล้ว!
-                            </span>
-                        </div>
-
-                        <!-- Horizontal Scrollable Discard Row -->
-                        <div id="discardPileContainer" class="flex items-center gap-2 overflow-x-auto py-4 px-2.5 min-h-[132px] bg-black/20 rounded-2xl border border-white/10">
-                            <!-- Rendered via JS -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Table Melds Overview Hint -->
-                <div class="flex flex-wrap items-center justify-between text-xs text-emerald-200/90 bg-white/5 px-3 py-1.5 rounded-xl">
-                    <div class="flex items-center gap-2">
-                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                        <span id="actionHintText">คำแนะนำ: เริ่มเทิร์นด้วยการกดที่ "กองจั่ว" หรือคลิกไพ่ในกองทิ้งเพื่อ "เก็บเกิด"</span>
-                    </div>
-                    <div class="flex items-center gap-3 mt-1 sm:mt-0">
-                        <span class="text-pink-300 font-medium">★ สเปโต (2♣, Q♠) = 50 แต้ม</span>
-                        <span class="text-amber-300 font-medium">👑 ไพ่หัว = +50 แต้ม</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: Live Thai Game Log & Penalties -->
-            <div class="bg-black/35 backdrop-blur-md rounded-3xl p-3 border border-white/15 flex flex-col h-48 lg:h-auto">
-                <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
-                    <h2 class="text-xs font-semibold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-scroll"></i> บันทึกเหตุการณ์ & ค่าปรับ
-                    </h2>
-                    <span class="text-[11px] text-emerald-300" id="roundTurnCounter">รอบที่ 1</span>
-                </div>
-                <div id="gameLogContainer" class="flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs font-light max-h-[160px] lg:max-h-[210px]">
-                    <!-- Log entries appended here -->
-                </div>
-            </div>
-
-        </section>
-
-        <!-- Smart Play Assistant Panel (Toggleable) -->
-        <section id="smartAssistantPanel" class="bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-slate-900/90 backdrop-blur-md rounded-2xl px-3.5 py-2.5 border border-amber-400/40 shadow-lg transition-all">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-amber-400/20 border border-amber-400/50 flex items-center justify-center text-amber-300 text-sm">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    </span>
-                    <div>
-                        <h4 class="text-xs md:text-sm font-bold text-amber-300 flex items-center gap-2">
-                            ตัวช่วยวิเคราะห์ไพ่ (Smart Assistant)
-                            <span id="assistantTurnTag" class="text-[10px] bg-white/10 text-emerald-200 px-2 py-0.5 rounded-full font-normal">คลิกที่ปุ่มแนะนำเพื่อเลือกไพ่อัตโนมัติ</span>
-                        </h4>
-                    </div>
-                </div>
-                <div id="assistantSuggestionsList" class="flex items-center gap-2 flex-wrap">
-                    <!-- Dynamic Smart Chips Rendered Here -->
-                </div>
-            </div>
-        </section>
-
-        <!-- Bottom Section: Local Player Area -->
-        <section id="humanPlayerPanel" class="bg-black/35 backdrop-blur-md rounded-3xl p-3 md:p-4 border-2 border-white/15 shadow-2xl transition-all">
-            
-            <!-- Player Top Bar: Info, Score, Melds, and Action Buttons -->
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-2.5 border-b border-white/10">
-                
-                <!-- Player Identity & Score -->
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-sm md:text-base shadow">
-                        คุณ
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h3 id="localPlayerNameTitle" class="font-bold text-sm md:text-base text-white">ผู้เล่น (คุณ)</h3>
-                            <span id="playerMeldedBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/30 text-rose-200 border border-rose-400/30">
-                                ยังไม่เกิด (ระวังมืด!)
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-3 text-xs text-emerald-200 mt-0.5">
-                            <span>ไพ่ในมือ: <strong id="playerHandCount" class="text-white">0</strong> ใบ</span>
-                            <span>แต้มเกิดบนโต๊ะ: <strong id="playerTableScore" class="text-amber-300">0</strong></span>
-                            <span>หักลบ/โบนัส: <strong id="playerPenaltyScore" class="text-sky-300">0</strong></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Toolbar -->
-                <div class="flex flex-wrap items-center gap-1.5 md:gap-2">
-                    <button onclick="sortPlayerHand('rank')" class="btn-game bg-slate-700 hover:bg-slate-600 text-white text-xs px-2.5 py-2 rounded-xl flex items-center gap-1" title="เรียงตามแต้ม 2 -> A">
-                        <i class="fa-solid fa-arrow-down-1-9 text-amber-300"></i> เรียงแต้ม
-                    </button>
-                    <button onclick="sortPlayerHand('suit')" class="btn-game bg-slate-700 hover:bg-slate-600 text-white text-xs px-2.5 py-2 rounded-xl flex items-center gap-1" title="เรียงตามดอก ♣ ♦ ♥ ♠">
-                        <i class="fa-solid fa-clover text-emerald-300"></i> เรียงดอก
-                    </button>
-
-                    <div class="h-6 w-px bg-white/20 mx-0.5 hidden sm:block"></div>
-
-                    <button id="btnDraw" onclick="handleDrawCard()" class="btn-game bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs md:text-sm px-3 py-2 rounded-xl flex items-center gap-1.5">
-                        <i class="fa-solid fa-hand-sparkles"></i> จั่วไพ่
-                    </button>
-
-                    <button id="btnPickupMeld" onclick="handlePickupFromDiscard()" class="btn-game bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-xs md:text-sm px-3 py-2 rounded-xl flex items-center gap-1.5">
-                        <i class="fa-solid fa-magnet"></i> เก็บเกิดจากกอง
-                    </button>
-
-                    <button id="btnMeldHand" onclick="handleMeldFromHand()" class="btn-game bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs md:text-sm px-3 py-2 rounded-xl flex items-center gap-1.5">
-                        <i class="fa-solid fa-clone"></i> ลงชุดไพ่
-                    </button>
-
-                    <button id="btnLayOff" onclick="handleLayOff()" class="btn-game bg-purple-500 hover:bg-purple-400 text-white font-semibold text-xs md:text-sm px-3 py-2 rounded-xl flex items-center gap-1.5">
-                        <i class="fa-solid fa-share-from-square"></i> ฝากไพ่
-                    </button>
-
-                    <button id="btnDiscard" onclick="handleDiscardCard()" class="btn-game bg-rose-500 hover:bg-rose-400 text-white font-semibold text-xs md:text-sm px-3 py-2 rounded-xl flex items-center gap-1.5">
-                        <i class="fa-solid fa-paper-plane"></i> ทิ้งไพ่จบเทิร์น
-                    </button>
-
-                    <button id="btnKnock" onclick="handleKnockGame()" class="btn-game bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 text-slate-950 font-bold text-xs md:text-sm px-3.5 py-2 rounded-xl flex items-center gap-1.5 animate-pulse">
-                        <i class="fa-solid fa-crown"></i> น็อก (ทิ้งคว่ำ!)
-                    </button>
-                </div>
-            </div>
-
-            <!-- Player's Melded Sets on Table -->
-            <div class="my-2">
-                <div class="text-[11px] text-emerald-300 mb-1 flex items-center justify-between">
-                    <span>ชุดไพ่ที่คุณเกิดแล้ว (คลิกชุดไพ่บนโต๊ะของใครก็ได้เพื่อ "ฝากไพ่"):</span>
-                    <button onclick="clearSelections()" class="text-amber-300 hover:underline text-[11px]">ยกเลิกไพ่ที่เลือกทั้งหมด</button>
-                </div>
-                <div id="playerMeldsContainer" class="flex items-center gap-3 overflow-x-auto min-h-[76px] bg-black/25 p-2 rounded-2xl border border-white/10">
-                    <!-- Player Melds rendered here -->
-                </div>
-            </div>
-
-            <!-- Player's Hand Cards -->
-            <div class="mt-1">
-                <div id="playerHandContainer" class="flex items-center justify-start md:justify-center gap-1.5 sm:gap-2 overflow-x-auto pt-6 pb-2 px-2 min-h-[138px]">
-                    <!-- Clickable Player Cards rendered here -->
-                </div>
-            </div>
-
-        </section>
-    </main>
-
-    <!-- Online Multiplayer & Mode Selection Lobby Modal -->
-    <div id="lobbyModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-sky-400/50 rounded-3xl max-w-xl w-full p-5 md:p-6 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
-            <div class="flex items-center justify-between pb-3 border-b border-white/10">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-300 text-lg">
-                        <i class="fa-solid fa-earth-asia"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg md:text-xl font-bold text-amber-300">โหมดการเล่น & สร้างห้องออนไลน์</h2>
-                        <p class="text-xs text-slate-300">เลือกเล่นคนเดียวกับบอท หรือสร้างห้องเล่นกับเพื่อนแบบเรียลไทม์</p>
-                    </div>
-                </div>
-                <button onclick="closeLobbyModal()" class="text-slate-400 hover:text-white text-xl px-2">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <!-- View 1: Mode & Room Entry -->
-            <div id="lobbyEntryView" class="space-y-4 my-4">
-                <!-- Player Display Name -->
-                <div class="bg-white/5 p-3.5 rounded-2xl border border-white/10">
-                    <label class="block text-xs font-semibold text-emerald-300 mb-1.5">ชื่อที่ใช้แสดงในเกม (Display Name)</label>
-                    <input id="playerNameInput" type="text" maxlength="18" placeholder="ใส่ชื่อเล่นของคุณ..." value="เซียนดัมมี่"
-                        class="w-full bg-slate-950 border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
-                </div>
-
-                <!-- Option A: Online Multiplayer with Friends -->
-                <div class="bg-gradient-to-br from-sky-950/80 to-slate-900 p-4 rounded-2xl border border-sky-400/40 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h3 class="font-bold text-sm md:text-base text-sky-300 flex items-center gap-2">
-                            <i class="fa-solid fa-users"></i> เล่นออนไลน์กับเพื่อน (2 - 4 คน)
-                        </h3>
-                        <span id="onlineStatusIndicator" class="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                            พร้อมเชื่อมต่อ
-                        </span>
-                    </div>
-                    <p class="text-xs text-slate-300 leading-relaxed">
-                        สร้างห้องใหม่เพื่อรับ <strong>รหัสห้อง 5 หลัก</strong> ส่งให้เพื่อนกดเข้าร่วม หรือกรอกรหัสห้องของเพื่อนเพื่อเข้าวงไพ่เดียวกัน
-                    </p>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                        <button id="btnCreateRoom" onclick="createOnlineRoom()" class="btn-game bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-bold py-2.5 px-4 rounded-xl text-xs md:text-sm flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-plus-circle"></i> สร้างห้องใหม่ (Host)
-                        </button>
-
-                        <div class="flex gap-1.5">
-                            <input id="joinRoomCodeInput" type="text" maxlength="6" placeholder="รหัสห้อง..."
-                                class="w-full bg-slate-950 border border-sky-400/40 rounded-xl px-3 py-2 text-sm text-center uppercase font-bold tracking-widest text-amber-300 focus:outline-none focus:border-amber-400">
-                            <button id="btnJoinRoom" onclick="joinOnlineRoom()" class="btn-game bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs md:text-sm whitespace-nowrap">
-                                เข้าห้อง
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Option B: Single Player vs AI Bots -->
-                <div class="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div>
-                        <h3 class="font-bold text-sm text-emerald-300 flex items-center gap-2">
-                            <i class="fa-solid fa-robot"></i> โหมดฝึกซ้อมกับบอท AI (เล่นคนเดียว)
-                        </h3>
-                        <p class="text-xs text-slate-300 mt-0.5">ไม่ต้องรอเพื่อน เริ่มเล่นได้ทันทีพร้อมตัวช่วยแนะนำ</p>
-                    </div>
-                    <button onclick="switchToSinglePlayer()" class="btn-game bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl text-xs md:text-sm whitespace-nowrap">
-                        เล่นกับบอททันที
-                    </button>
-                </div>
-            </div>
-
-            <!-- View 2: Waiting Room (Active Online Room Lobby) -->
-            <div id="lobbyWaitingView" class="hidden space-y-4 my-4">
-                <div class="bg-sky-950/70 border border-sky-400/40 rounded-2xl p-4 text-center">
-                    <span class="text-xs text-sky-200">รหัสห้องของคุณ (ส่งให้เพื่อนกรอกเข้าห้อง)</span>
-                    <div class="flex items-center justify-center gap-3 mt-1">
-                        <span id="waitingRoomCodeDisplay" class="text-3xl font-extrabold tracking-widest text-amber-300">-----</span>
-                        <button onclick="copyRoomCode()" class="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 border border-white/20">
-                            <i class="fa-regular fa-copy"></i> คัดลอกรหัส
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-white/5 rounded-2xl p-3.5 border border-white/10">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-semibold text-emerald-300">ผู้เล่นในห้อง (<span id="waitingPlayerCount">1</span>/4 คน)</span>
-                        <span class="text-[11px] text-slate-400">ต้องมี 2 - 4 คนเพื่อเริ่มเกม</span>
-                    </div>
-                    <div id="waitingPlayersList" class="space-y-2">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-
-                <div id="hostWaitingControls" class="flex flex-wrap items-center justify-between gap-2 pt-2">
-                    <div class="flex items-center gap-2">
-                        <button id="btnAddBotToRoom" onclick="hostAddBotToRoom()" class="btn-game bg-slate-700 hover:bg-slate-600 text-amber-300 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5">
-                            <i class="fa-solid fa-robot"></i> +เพิ่มบอทเข้าห้อง
-                        </button>
-                        <button id="btnRemoveBotFromRoom" onclick="hostRemoveBotFromRoom()" class="btn-game bg-slate-800 hover:bg-slate-700 text-rose-300 text-xs px-2.5 py-2 rounded-xl">
-                            ลบบอท
-                        </button>
-                    </div>
-
-                    <button id="btnStartOnlineMatch" onclick="hostStartOnlineGame()" class="btn-game bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-play"></i> เริ่มแจกไพ่!
-                    </button>
-                </div>
-
-                <div id="guestWaitingNotice" class="hidden text-center text-xs text-amber-300 py-2 bg-amber-500/10 rounded-xl border border-amber-400/20">
-                    ⏳ รอหัวหน้าห้อง (Host) กดเริ่มแจกไพ่...
-                </div>
-
-                <div class="flex justify-between items-center pt-2 border-t border-white/10">
-                    <button onclick="leaveOnlineRoom()" class="text-xs text-rose-400 hover:underline flex items-center gap-1">
-                        <i class="fa-solid fa-right-from-bracket"></i> ออกจากห้องออนไลน์
-                    </button>
-                    <button onclick="closeLobbyModal()" class="text-xs text-slate-300 hover:text-white">
-                        ย่อหน้าต่างนี้
-                    </button>
-                </div>
-            </div>
-        </div>
+  <!-- Top Navigation -->
+  <header class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/85 border border-slate-700/80 rounded-xl px-3 py-2 shadow-lg">
+    <div class="flex items-center gap-2">
+      <span class="text-xl md:text-2xl font-bold text-amber-400">🃏 ดัมมี่ไทย</span>
+      <span id="roomStatusBadge" class="text-xs bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 px-2.5 py-0.5 rounded-full">
+        โหมดฝึกซ้อมกับบอท
+      </span>
     </div>
 
-    <!-- Toast Notification Banner -->
-    <div id="toastBanner" class="fixed bottom-6 right-6 z-50 hidden transform transition-all duration-300 bg-slate-900/95 text-white px-4 py-3 rounded-2xl shadow-2xl border border-amber-400/50 flex items-center gap-3 max-w-sm">
-        <i id="toastIcon" class="fa-solid fa-bell text-amber-400 text-lg"></i>
-        <div class="text-xs md:text-sm font-medium" id="toastMessage">แจ้งเตือน</div>
+    <div class="flex flex-wrap items-center gap-2">
+      <button id="btnToggleHint" onclick="toggleAssistant()" class="text-xs md:text-sm px-3 py-1.5 rounded-lg font-medium bg-amber-500/20 text-amber-300 border border-amber-400/50 hover:bg-amber-500/30 transition">
+        💡 ตัวช่วยแนะนำ: เปิด
+      </button>
+      <button onclick="openRoomModal()" class="text-xs md:text-sm px-3 py-1.5 rounded-lg font-medium bg-sky-600 hover:bg-sky-500 text-white shadow transition">
+        🌐 เล่นกับเพื่อน / ห้องออนไลน์
+      </button>
+      <button onclick="requestNewGame()" class="text-xs md:text-sm px-3 py-1.5 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
+        🔄 เริ่มตาใหม่
+      </button>
     </div>
+  </header>
 
-    <!-- Rules & Score Reference Modal -->
-    <div id="rulesModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-2xl w-full p-5 md:p-6 shadow-2xl text-slate-100 max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between pb-3 border-b border-white/10">
-                <h2 class="text-xl font-bold text-amber-400 flex items-center gap-2">
-                    <i class="fa-solid fa-book-open"></i> กติกาและการนับแต้มดัมมี่ไทย
-                </h2>
-                <button onclick="toggleRulesModal(false)" class="text-slate-400 hover:text-white text-xl px-2">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
+  <!-- Players Score & Turn Status -->
+  <section id="playersBar" class="grid grid-cols-2 md:grid-cols-4 gap-2 my-2"></section>
 
-            <div class="space-y-4 my-4 text-xs md:text-sm leading-relaxed">
-                <div class="bg-white/5 p-3.5 rounded-2xl border border-white/10">
-                    <h3 class="font-semibold text-emerald-300 mb-1.5">1. ค่าแต้มของไพ่แต่ละใบ</h3>
-                    <ul class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-slate-200">
-                        <li class="bg-pink-500/20 border border-pink-400/30 p-2 rounded-xl"><strong>2♣ / Q♠ (สเปโต):</strong> 50 แต้ม</li>
-                        <li class="bg-amber-500/20 border border-amber-400/30 p-2 rounded-xl"><strong>A (เอซ):</strong> 15 แต้ม</li>
-                        <li class="bg-sky-500/20 border border-sky-400/30 p-2 rounded-xl"><strong>10, J, Q, K:</strong> 10 แต้ม</li>
-                        <li class="bg-emerald-500/20 border border-emerald-400/30 p-2 rounded-xl"><strong>2 - 9:</strong> 5 แต้ม</li>
-                        <li class="bg-yellow-500/20 border border-yellow-400/30 p-2 rounded-xl col-span-2"><strong>👑 ไพ่หัว (ใบแรกสุดของกองทิ้ง):</strong> บวกเพิ่มพิเศษ +50 แต้ม เมื่อนำมาเกิดหรือฝาก</li>
-                    </ul>
-                </div>
+  <!-- Assistant Bar -->
+  <section id="assistantPanel" class="bg-slate-900/90 border border-amber-500/40 rounded-xl px-3 py-2 mb-2 shadow-md">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2 text-xs md:text-sm font-medium text-amber-300">
+        <span>🤖 คำแนะนำอัจฉริยะ:</span>
+        <span id="assistantSummary" class="text-slate-200 font-normal">กำลังวิเคราะห์ไพ่บนมือ...</span>
+      </div>
+      <div id="assistantQuickButtons" class="flex flex-wrap gap-1.5"></div>
+    </div>
+  </section>
 
-                <div class="bg-white/5 p-3.5 rounded-2xl border border-white/10">
-                    <h3 class="font-semibold text-amber-300 mb-1.5">2. ระบบตัวช่วยแนะนำการเล่น (Smart Play Assistant)</h3>
-                    <ul class="list-disc list-inside space-y-1 text-slate-300">
-                        <li>กดปุ่ม <strong>"ตัวช่วยแนะนำ: เปิด/ปิด"</strong> ที่แถบด้านบนได้ตลอดเวลา</li>
-                        <li>เมื่อเปิดอยู่ ระบบจะสแกนหา <strong>ชุดไพ่ที่เก็บเกิดจากกองได้</strong>, <strong>ชุดไพ่ในมือที่ลงได้</strong> และ <strong>ไพ่ที่นำไปฝากต่อได้</strong> พร้อมปุ่มลัดให้คลิกเลือกไพ่อัตโนมัติ</li>
-                        <li>แจ้งเตือนป้าย <strong>"⚠️ ระวัง!"</strong> บนไพ่ในมือที่หากทิ้งลงไปแล้วจะโดนหักคะแนน (เช่น ปี้หัว หรือ ทิ้งไพ่ฝาก)</li>
-                    </ul>
-                </div>
-
-                <div class="bg-white/5 p-3.5 rounded-2xl border border-white/10">
-                    <h3 class="font-semibold text-rose-300 mb-1.5">3. กฎคะแนนพิเศษ & ค่าปรับ (-50 แต้ม)</h3>
-                    <ul class="list-disc list-inside space-y-1 text-slate-300">
-                        <li><strong>น็อก (ชนะจบเกม):</strong> ได้โบนัส +50 แต้ม</li>
-                        <li><strong>ปี้หัว (-50 แต้ม):</strong> ทิ้งไพ่ที่แต้มเท่ากับไพ่หัว หรือเป็นดอกเดียวกันที่เรียงติดกับไพ่หัว</li>
-                        <li><strong>ทิ้งไพ่ฝาก (-50 แต้ม):</strong> ทิ้งไพ่ที่สามารถนำไปเสียบฝากต่อในชุดที่เกิดไว้แล้วบนโต๊ะได้ทันที</li>
-                        <li><strong>ทิ้งไพ่โง่ (ถูกเก็บเกิด -50 แต้ม):</strong> ทิ้งไพ่แล้วผู้เล่นคนอื่นเก็บไพ่ใบนั้นไปเกิด</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="flex justify-end">
-                <button onclick="toggleRulesModal(false)" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-5 py-2 rounded-xl">
-                    เข้าใจแล้ว ลุยเลย!
-                </button>
-            </div>
+  <!-- Main Table Area -->
+  <main class="flex-1 flex flex-col justify-between gap-3 bg-emerald-950/60 border border-emerald-800/60 rounded-2xl p-3 md:p-4 shadow-inner">
+    
+    <!-- Deck & Discard Pile -->
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-950/50 rounded-xl p-3 border border-slate-800">
+      <!-- Deck -->
+      <div class="flex items-center gap-3">
+        <div id="deckPile" onclick="handleDrawCard()" class="w-16 h-24 rounded-lg bg-gradient-to-br from-indigo-700 to-slate-900 border-2 border-indigo-400 shadow-lg flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition">
+          <span class="text-xs text-indigo-200">กองจั่ว</span>
+          <span id="deckCount" class="text-xl font-bold text-white">0</span>
+          <span class="text-[10px] text-amber-300 mt-1">คลิกจั่ว</span>
         </div>
-    </div>
-
-    <!-- End Game Summary Modal -->
-    <div id="endGameModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
-        <div class="bg-slate-900 border-2 border-amber-400/60 rounded-3xl max-w-3xl w-full p-5 md:p-6 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
-            <div class="text-center mb-4">
-                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-400 text-amber-300 text-3xl mb-2">
-                    🏆
-                </div>
-                <h2 id="endGameTitle" class="text-2xl font-bold text-amber-300">สรุปผลการแข่งขันดัมมี่</h2>
-                <p id="endGameSubtitle" class="text-sm text-emerald-200 mt-0.5">จบเกมแล้ว!</p>
-            </div>
-
-            <div id="scoreBreakdownContainer" class="space-y-3 my-4">
-                <!-- Populated dynamically -->
-            </div>
-
-            <div class="flex justify-center gap-3 mt-6">
-                <button onclick="closeEndGameModalOnly()" class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium">
-                    ดูไพ่บนโต๊ะ
-                </button>
-                <button onclick="handleRestartClick()" class="bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm shadow-lg flex items-center gap-2">
-                    <i class="fa-solid fa-play"></i> เล่นตาต่อไป
-                </button>
-            </div>
+        <div class="text-xs space-y-1 text-slate-300">
+          <div id="turnIndicator" class="text-sm md:text-base font-semibold text-amber-400">รอเริ่มเกม...</div>
+          <div id="subTurnStatus" class="text-slate-400">จั่วไพ่ 1 ใบ หรือเลือกไพ่ในกองทิ้งเพื่อเก็บเกิด</div>
         </div>
+      </div>
+
+      <!-- Discard Pile -->
+      <div class="flex-1 w-full overflow-x-auto">
+        <div class="text-xs text-slate-400 mb-1.5 flex justify-between">
+          <span>กองกลาง (ไพ่ใบแรกมี 👑 หัว = +50 แต้ม | คลิกไพ่ในกองคู่กับไพ่ในมือเพื่อ "เก็บเกิด")</span>
+          <span id="discardCountLabel">0 ใบ</span>
+        </div>
+        <div id="discardContainer" class="flex items-center gap-1.5 py-2 px-1 min-h-[104px] overflow-x-auto"></div>
+      </div>
     </div>
 
-    <!-- Firebase SDK & Game Engine Script -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        /**************************************************************
-         * 0. FIREBASE INITIALIZATION & MULTIPLAYER STATE
-         **************************************************************/
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-thai-dummy-app';
-        let db = null;
-        let auth = null;
-        let currentUser = null;
-        let roomUnsubscribe = null;
-
-        let onlineSession = {
-            isOnline: false,
-            roomCode: null,
-            isHost: false,
-            myUid: 'local_human'
-        };
-
-        // Smart Play Assistant State (Enabled by default)
-        let smartHintEnabled = true;
-        let currentAnalysis = {
-            pickupSuggestions: [],
-            handMeldSuggestions: [],
-            layoffSuggestions: [],
-            dangerCardsMap: new Map(), // cardId -> reason string
-            pickupCardIdsInDiscard: new Set(),
-            meldCardIdsInHand: new Set(),
-            layoffCardIdsInHand: new Set()
-        };
-
-        async function initFirebase() {
-            try {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const firebaseConfig = JSON.parse(__firebase_config);
-                    const app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-
-                    onAuthStateChanged(auth, (user) => {
-                        if (user) {
-                            currentUser = user;
-                            onlineSession.myUid = user.uid;
-                        }
-                    });
-                }
-            } catch (err) {
-                console.warn("Firebase initialization skipped or offline mode:", err);
-            }
-        }
-
-        /**************************************************************
-         * 1. CONSTANTS & CARD DEFINITIONS (ตั้งค่าสำรับไพ่และแต้มดัมมี่ไทย)
-         **************************************************************/
-        const SUITS = [
-            { symbol: '♣', name: 'ดอกจิก', color: 'text-slate-900', order: 1 },
-            { symbol: '♦', name: 'ข้าวหลามตัด', color: 'text-red-600', order: 2 },
-            { symbol: '♥', name: 'โพแดง', color: 'text-red-600', order: 3 },
-            { symbol: '♠', name: 'โพดำ', color: 'text-slate-900', order: 4 }
-        ];
-
-        const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-
-        let gameState = {
-            status: 'PLAYING',   // 'WAITING', 'PLAYING', 'GAMEOVER'
-            players: [],         // Array of player objects (each has uid, id, name, isAI, hand, melds, hasMelded, penalties, penaltyHistory)
-            deck: [],
-            discardPile: [],
-            currentTurnIndex: 0,
-            turnPhase: 'START',  // 'START', 'MAIN', 'GAMEOVER'
-            turnCounter: 1,
-            logs: [],            // Shared logs for multiplayer sync
-            selectedHandIds: new Set(),
-            selectedDiscardId: null,
-            selectedMeldRef: null,
-            winnerId: null,
-            endReason: ''
-        };
-
-        function createDeck() {
-            const deck = [];
-            let idCounter = 1;
-            for (const suitObj of SUITS) {
-                RANKS.forEach((rank, idx) => {
-                    deck.push({
-                        id: `card_${idCounter++}`,
-                        suit: suitObj.symbol,
-                        suitName: suitObj.name,
-                        colorClass: suitObj.color,
-                        suitOrder: suitObj.order,
-                        rank: rank,
-                        rankValue: idx + 2,
-                        isHead: false,
-                        discardedBy: null,
-                        meldOwnerId: null
-                    });
-                });
-            }
-            return deck;
-        }
-
-        function getCardPoints(card) {
-            let pts = 5;
-            if (card.suit === '♣' && card.rank === '2') pts = 50;
-            else if (card.suit === '♠' && card.rank === 'Q') pts = 50;
-            else if (card.rank === 'A') pts = 15;
-            else if (['10', 'J', 'Q', 'K'].includes(card.rank)) pts = 10;
-            if (card.isHead) pts += 50;
-            return pts;
-        }
-
-        function isSpeto(card) {
-            return (card.suit === '♣' && card.rank === '2') || (card.suit === '♠' && card.rank === 'Q');
-        }
-
-        function shuffleCards(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        // Get the index of the local human player in `gameState.players`
-        function getMyPlayerIndex() {
-            if (!onlineSession.isOnline) return 0;
-            const idx = gameState.players.findIndex(p => p.uid === onlineSession.myUid);
-            return idx !== -1 ? idx : 0;
-        }
-
-        function getMyPlayer() {
-            return gameState.players[getMyPlayerIndex()];
-        }
-
-        function isMyTurn() {
-            if (gameState.turnPhase === 'GAMEOVER' || gameState.status !== 'PLAYING') return false;
-            return gameState.currentTurnIndex === getMyPlayerIndex();
-        }
-
-        /**************************************************************
-         * 2. VALIDATION LOGIC (ตรวจสอบชุดไพ่ตอง ไพ่เรียง และการฝากไพ่)
-         **************************************************************/
-        function isValidGroup(cards) {
-            if (cards.length < 3 || cards.length > 4) return false;
-            const firstRank = cards[0].rankValue;
-            const suits = new Set();
-            for (const c of cards) {
-                if (c.rankValue !== firstRank) return false;
-                suits.add(c.suit);
-            }
-            return suits.size === cards.length;
-        }
-
-        function isValidRun(cards) {
-            if (cards.length < 3) return false;
-            const firstSuit = cards[0].suit;
-            for (const c of cards) {
-                if (c.suit !== firstSuit) return false;
-            }
-            const sorted = [...cards].sort((a, b) => a.rankValue - b.rankValue);
-            for (let i = 0; i < sorted.length - 1; i++) {
-                if (sorted[i + 1].rankValue - sorted[i].rankValue !== 1) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        function validateMeld(cards) {
-            if (isValidGroup(cards)) {
-                return { valid: true, type: 'GROUP', sortedCards: [...cards].sort((a, b) => a.suitOrder - b.suitOrder) };
-            }
-            if (isValidRun(cards)) {
-                return { valid: true, type: 'RUN', sortedCards: [...cards].sort((a, b) => a.rankValue - b.rankValue) };
-            }
-            return { valid: false, type: null, sortedCards: [] };
-        }
-
-        function canLayOffCard(card, meldObj) {
-            const combined = [...meldObj.cards, card];
-            return validateMeld(combined).valid;
-        }
-
-        /**************************************************************
-         * 3. SMART PLAY ASSISTANT ENGINE (วิเคราะห์ไพ่เกิด ฝาก และไพ่เสี่ยง)
-         **************************************************************/
-        function toggleSmartAssistant() {
-            smartHintEnabled = !smartHintEnabled;
-            const btn = document.getElementById('btnToggleHint');
-            const statusText = document.getElementById('hintStatusText');
-            const panel = document.getElementById('smartAssistantPanel');
-
-            if (smartHintEnabled) {
-                statusText.textContent = 'เปิด';
-                statusText.className = 'text-amber-300';
-                btn.className = 'px-3 py-1.5 rounded-xl text-xs md:text-sm font-semibold border transition flex items-center gap-2 shadow bg-amber-400/20 border-amber-400 text-amber-200';
-                panel.classList.remove('hidden');
-                showToast('เปิดระบบตัวช่วยแนะนำการเล่นแล้ว', 'info');
-            } else {
-                statusText.textContent = 'ปิด';
-                statusText.className = 'text-slate-400';
-                btn.className = 'px-3 py-1.5 rounded-xl text-xs md:text-sm font-semibold border transition flex items-center gap-2 shadow bg-white/5 border-white/15 text-slate-300';
-                panel.classList.add('hidden');
-                showToast('ปิดระบบตัวช่วยแนะนำแล้ว', 'info');
-            }
-            renderAll();
-        }
-
-        function runSmartAssistantAnalysis() {
-            currentAnalysis = {
-                pickupSuggestions: [],
-                handMeldSuggestions: [],
-                layoffSuggestions: [],
-                dangerCardsMap: new Map(),
-                pickupCardIdsInDiscard: new Set(),
-                meldCardIdsInHand: new Set(),
-                layoffCardIdsInHand: new Set()
-            };
-
-            const me = getMyPlayer();
-            if (!me || !smartHintEnabled || gameState.turnPhase === 'GAMEOVER') return;
-
-            const hand = me.hand;
-
-            // 1. Analyze Pick & Meld from Discard Pile (เก็บไพ่เกิดจากกอง)
-            if (gameState.turnPhase === 'START') {
-                for (let dIdx = 0; dIdx < gameState.discardPile.length; dIdx++) {
-                    const targetCard = gameState.discardPile[dIdx];
-                    const extraPickedCount = gameState.discardPile.length - 1 - dIdx;
-
-                    // Check all 2-card combinations in hand + targetCard
-                    for (let i = 0; i < hand.length; i++) {
-                        for (let j = i + 1; j < hand.length; j++) {
-                            const pair = [hand[i], hand[j]];
-                            const check = validateMeld([targetCard, ...pair]);
-                            if (check.valid) {
-                                const remaining = (hand.length - 2) + extraPickedCount;
-                                if (remaining >= 1) {
-                                    const pts = check.sortedCards.reduce((s, c) => s + getCardPoints(c), 0);
-                                    currentAnalysis.pickupSuggestions.push({
-                                        discardCard: targetCard,
-                                        handCards: pair,
-                                        sortedCards: check.sortedCards,
-                                        points: pts
-                                    });
-                                    currentAnalysis.pickupCardIdsInDiscard.add(targetCard.id);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 2. Analyze Melds inside Hand (ชุดไพ่ตอง หรือ เรียงในมือ)
-            // Find valid 3-card combinations in hand
-            const seenMeldKeys = new Set();
-            for (let i = 0; i < hand.length; i++) {
-                for (let j = i + 1; j < hand.length; j++) {
-                    for (let k = j + 1; k < hand.length; k++) {
-                        const trio = [hand[i], hand[j], hand[k]];
-                        const check = validateMeld(trio);
-                        if (check.valid && (hand.length - 3 >= 1)) {
-                            const key = check.sortedCards.map(c => c.id).sort().join('-');
-                            if (!seenMeldKeys.has(key)) {
-                                seenMeldKeys.add(key);
-                                const pts = check.sortedCards.reduce((s, c) => s + getCardPoints(c), 0);
-                                currentAnalysis.handMeldSuggestions.push({
-                                    cards: check.sortedCards,
-                                    points: pts
-                                });
-                                check.sortedCards.forEach(c => currentAnalysis.meldCardIdsInHand.add(c.id));
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. Analyze Lay-off Opportunities (ไพ่ที่ฝากเข้าชุดบนโต๊ะได้)
-            for (const card of hand) {
-                for (let pIdx = 0; pIdx < gameState.players.length; pIdx++) {
-                    const p = gameState.players[pIdx];
-                    for (let mIdx = 0; mIdx < p.melds.length; mIdx++) {
-                        const meld = p.melds[mIdx];
-                        if (canLayOffCard(card, meld)) {
-                            currentAnalysis.layoffSuggestions.push({
-                                card: card,
-                                ownerId: pIdx,
-                                ownerName: p.name,
-                                meldIndex: mIdx,
-                                meldCards: meld.cards
-                            });
-                            if (me.hasMelded && hand.length > 1) {
-                                currentAnalysis.layoffCardIdsInHand.add(card.id);
-                            }
-                            // Also mark as Dangerous to discard!
-                            currentAnalysis.dangerCardsMap.set(card.id, `ระวัง! ทิ้งใบนี้โดน "ทิ้งไพ่ฝาก" (-50 แต้ม)`);
-                        }
-                    }
-                }
-            }
-
-            // 4. Analyze Head Card Danger (ระวังปี้หัว -50 แต้ม)
-            const headCard = gameState.discardPile.find(c => c.isHead);
-            if (headCard) {
-                for (const card of hand) {
-                    const sameRank = card.rankValue === headCard.rankValue;
-                    const adjSameSuit = card.suit === headCard.suit && Math.abs(card.rankValue - headCard.rankValue) === 1;
-                    if (sameRank || adjSameSuit) {
-                        if (!currentAnalysis.dangerCardsMap.has(card.id)) {
-                            currentAnalysis.dangerCardsMap.set(card.id, `ระวัง! ทิ้งใบนี้โดน "ปี้หัว" ชน ${headCard.rank}${headCard.suit} (-50 แต้ม)`);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Clickable Quick-Select Helpers from Smart Assistant Panel
-        function applyPickupSuggestion(index) {
-            const sug = currentAnalysis.pickupSuggestions[index];
-            if (!sug) return;
-            gameState.selectedDiscardId = sug.discardCard.id;
-            gameState.selectedHandIds.clear();
-            sug.handCards.forEach(c => gameState.selectedHandIds.add(c.id));
-            showToast(`เลือกชุดเก็บเกิด [${sug.sortedCards.map(c => c.rank + c.suit).join(' ')}] แล้ว กดปุ่ม "เก็บเกิดจากกอง" ได้เลย!`, 'info');
-            renderAll();
-        }
-
-        function applyHandMeldSuggestion(index) {
-            const sug = currentAnalysis.handMeldSuggestions[index];
-            if (!sug) return;
-            gameState.selectedDiscardId = null;
-            gameState.selectedHandIds.clear();
-            sug.cards.forEach(c => gameState.selectedHandIds.add(c.id));
-            if (gameState.turnPhase === 'START') {
-                showToast(`เลือกชุดไพ่ในมือแล้ว (อย่าลืมกด "จั่วไพ่" ก่อนลงชุดไพ่)`, 'info');
-            } else {
-                showToast(`เลือกชุดไพ่ [${sug.cards.map(c => c.rank + c.suit).join(' ')}] แล้ว กดปุ่ม "ลงชุดไพ่" ได้เลย!`, 'info');
-            }
-            renderAll();
-        }
-
-        function applyLayoffSuggestion(index) {
-            const sug = currentAnalysis.layoffSuggestions[index];
-            if (!sug) return;
-            gameState.selectedDiscardId = null;
-            gameState.selectedHandIds.clear();
-            gameState.selectedHandIds.add(sug.card.id);
-            gameState.selectedMeldRef = { ownerId: sug.ownerId, meldIndex: sug.meldIndex };
-            showToast(`เลือกไพ่ ${sug.card.rank}${sug.card.suit} คู่กับชุดที่จะฝากแล้ว กดปุ่ม "ฝากไพ่" ได้เลย!`, 'info');
-            renderAll();
-        }
-
-        /**************************************************************
-         * 4. PENALTY CHECKS (ตรวจจับปี้หัว & ทิ้งไพ่ฝาก)
-         **************************************************************/
-        function checkDiscardPenalties(player, discardedCard) {
-            // 1. Check ทิ้งไพ่ฝาก
-            for (const p of gameState.players) {
-                for (const m of p.melds) {
-                    if (canLayOffCard(discardedCard, m)) {
-                        player.penalties -= 50;
-                        player.penaltyHistory.push(`ทิ้งไพ่ฝาก (${discardedCard.rank}${discardedCard.suit}) -50`);
-                        addGameLog(`⚠️ <strong>${player.name}</strong> ทิ้งไพ่ฝากได้ (${discardedCard.rank}${discardedCard.suit}) ถูกหัก <strong>-50 แต้ม!</strong>`, 'text-rose-300');
-                        showToast(`${player.name} ทิ้งไพ่ฝาก! (-50 แต้ม)`, 'warning');
-                        return;
-                    }
-                }
-            }
-
-            // 2. Check ปี้หัว
-            const headCardInPile = gameState.discardPile.find(c => c.isHead);
-            if (headCardInPile && headCardInPile.id !== discardedCard.id) {
-                const sameRank = discardedCard.rankValue === headCardInPile.rankValue;
-                const adjacentSameSuit = (discardedCard.suit === headCardInPile.suit) &&
-                    (Math.abs(discardedCard.rankValue - headCardInPile.rankValue) === 1);
-
-                if (sameRank || adjacentSameSuit) {
-                    player.penalties -= 50;
-                    player.penaltyHistory.push(`ปี้หัว (${discardedCard.rank}${discardedCard.suit} ชน ${headCardInPile.rank}${headCardInPile.suit}) -50`);
-                    addGameLog(`🔥 <strong>${player.name}</strong> ทิ้งไพ่ <strong>"ปี้หัว"</strong> (${discardedCard.rank}${discardedCard.suit}) ถูกปรับ <strong>-50 แต้ม!</strong>`, 'text-rose-400 font-semibold');
-                    showToast(`${player.name} โดนปรับปี้หัว -50 แต้ม!`, 'warning');
-                }
-            }
-        }
-
-        /**************************************************************
-         * 5. SINGLE PLAYER & ONLINE MULTIPLAYER INITIALIZATION
-         **************************************************************/
-        function handleRestartClick() {
-            if (onlineSession.isOnline) {
-                if (onlineSession.isHost) {
-                    hostStartOnlineGame();
-                } else {
-                    showToast('รอหัวหน้าห้อง (Host) กดเริ่มเกมรอบใหม่', 'info');
-                }
-            } else {
-                startSinglePlayerGame();
-            }
-        }
-
-        function startSinglePlayerGame() {
-            toggleRulesModal(false);
-            closeEndGameModalOnly();
-
-            const botCount = parseInt(document.getElementById('botCountSelect').value, 10) || 2;
-            const totalPlayers = 1 + botCount;
-            const dealCount = totalPlayers === 2 ? 11 : (totalPlayers === 3 ? 9 : 7);
-
-            const fullDeck = shuffleCards(createDeck());
-            const botNames = ['บอทสมศักดิ์ (เซียนดัมมี่)', 'บอทเจ๊พร (สายปี้หัว)', 'บอทเฮียหมู (จอมอมไพ่)'];
-            const customName = (document.getElementById('playerNameInput')?.value || '').trim() || 'คุณ (ผู้เล่น)';
-
-            const players = [];
-            for (let i = 0; i < totalPlayers; i++) {
-                const hand = fullDeck.splice(0, dealCount);
-                players.push({
-                    uid: i === 0 ? onlineSession.myUid : `bot_${i}`,
-                    id: i,
-                    name: i === 0 ? customName : botNames[i - 1],
-                    isAI: i !== 0,
-                    hand: hand,
-                    melds: [],
-                    hasMelded: false,
-                    penalties: 0,
-                    penaltyHistory: []
-                });
-            }
-
-            const firstDiscard = fullDeck.splice(0, 1)[0];
-            firstDiscard.isHead = true;
-
-            gameState = {
-                status: 'PLAYING',
-                players: players,
-                deck: fullDeck,
-                discardPile: [firstDiscard],
-                currentTurnIndex: 0,
-                turnPhase: 'START',
-                turnCounter: 1,
-                logs: [],
-                selectedHandIds: new Set(),
-                selectedDiscardId: null,
-                selectedMeldRef: null,
-                winnerId: null,
-                endReason: ''
-            };
-
-            sortHandArray(gameState.players[0].hand, 'rank');
-
-            document.getElementById('gameLogContainer').innerHTML = '';
-            addGameLog(`🃏 เริ่มเกมใหม่! แจกไพ่คนละ ${dealCount} ใบ`, 'text-emerald-300 font-medium');
-            addGameLog(`👑 ไพ่หัวประจำตานี้คือ <strong>${firstDiscard.rank}${firstDiscard.suit}</strong> (+50 แต้มเมื่อนำมาเกิด)`, 'text-amber-300 font-medium');
-
-            updateHeaderModeUI();
-            renderAll();
-            showToast(`เริ่มเกมดัมมี่! ไพ่หัวคือ ${firstDiscard.rank}${firstDiscard.suit}`, 'info');
-        }
-
-        /**************************************************************
-         * 6. ONLINE MULTIPLAYER ROOM MANAGEMENT (Firebase Firestore)
-         **************************************************************/
-        function openLobbyModal() {
-            const modal = document.getElementById('lobbyModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            updateLobbyModalView();
-        }
-
-        function closeLobbyModal() {
-            const modal = document.getElementById('lobbyModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function updateLobbyModalView() {
-            const entryView = document.getElementById('lobbyEntryView');
-            const waitingView = document.getElementById('lobbyWaitingView');
-            if (onlineSession.isOnline && onlineSession.roomCode) {
-                entryView.classList.add('hidden');
-                waitingView.classList.remove('hidden');
-                document.getElementById('waitingRoomCodeDisplay').textContent = onlineSession.roomCode;
-            } else {
-                entryView.classList.remove('hidden');
-                waitingView.classList.add('hidden');
-            }
-        }
-
-        function updateHeaderModeUI() {
-            const modeBadge = document.getElementById('modeBadge');
-            const roomBadge = document.getElementById('roomCodeHeaderBadge');
-            const botWrapper = document.getElementById('botSelectorWrapper');
-
-            if (onlineSession.isOnline && onlineSession.roomCode) {
-                modeBadge.textContent = 'ออนไลน์กับเพื่อน';
-                modeBadge.className = 'text-[11px] bg-sky-500/25 text-sky-200 border border-sky-400/40 px-2 py-0.5 rounded-full font-medium';
-                roomBadge.classList.remove('hidden');
-                roomBadge.classList.add('inline-flex');
-                document.getElementById('headerRoomCodeText').textContent = onlineSession.roomCode;
-                botWrapper.classList.add('hidden');
-            } else {
-                modeBadge.textContent = 'โหมดเล่นกับบอท';
-                modeBadge.className = 'text-[11px] bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full font-medium';
-                roomBadge.classList.add('hidden');
-                roomBadge.classList.remove('inline-flex');
-                botWrapper.classList.remove('hidden');
-            }
-        }
-
-        async function createOnlineRoom() {
-            if (!db || !currentUser) {
-                showToast('กำลังเชื่อมต่อระบบออนไลน์ กรุณารอสักครู่แล้วลองใหม่...', 'warning');
-                return;
-            }
-
-            const playerName = (document.getElementById('playerNameInput').value || '').trim() || 'เจ้ามือดัมมี่';
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let code = '';
-            for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
-
-            const initialPlayers = [{
-                uid: currentUser.uid,
-                id: 0,
-                name: playerName,
-                isAI: false,
-                hand: [],
-                melds: [],
-                hasMelded: false,
-                penalties: 0,
-                penaltyHistory: []
-            }];
-
-            const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dummy_rooms', code);
-            const payload = {
-                roomCode: code,
-                hostUid: currentUser.uid,
-                status: 'WAITING',
-                playersJson: JSON.stringify(initialPlayers),
-                deckJson: JSON.stringify([]),
-                discardPileJson: JSON.stringify([]),
-                currentTurnIndex: 0,
-                turnPhase: 'START',
-                turnCounter: 1,
-                logsJson: JSON.stringify([{ text: `🎉 ห้อง ${code} ถูกสร้างโดย ${playerName}`, color: 'text-amber-300' }]),
-                winnerId: null,
-                endReason: '',
-                updatedAt: Date.now()
-            };
-
-            try {
-                await setDoc(roomDocRef, payload);
-                onlineSession.isOnline = true;
-                onlineSession.roomCode = code;
-                onlineSession.isHost = true;
-                onlineSession.myUid = currentUser.uid;
-
-                subscribeToOnlineRoom(code);
-                updateHeaderModeUI();
-                updateLobbyModalView();
-                showToast(`สร้างห้องสำเร็จ! รหัสห้องคือ ${code}`, 'success');
-            } catch (err) {
-                console.error("Create room error:", err);
-                showToast('ไม่สามารถสร้างห้องได้ กรุณาลองอีกครั้ง', 'warning');
-            }
-        }
-
-        async function joinOnlineRoom() {
-            if (!db || !currentUser) {
-                showToast('กำลังเชื่อมต่อระบบออนไลน์ กรุณารอสักครู่...', 'warning');
-                return;
-            }
-
-            const codeInput = (document.getElementById('joinRoomCodeInput').value || '').trim().toUpperCase();
-            if (!codeInput || codeInput.length < 4) {
-                showToast('กรุณากรอกรหัสห้องให้ถูกต้อง', 'warning');
-                return;
-            }
-
-            const playerName = (document.getElementById('playerNameInput').value || '').trim() || 'เพื่อนเซียนไพ่';
-            const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dummy_rooms', codeInput);
-
-            try {
-                const snap = await getDoc(roomDocRef);
-                if (!snap.exists()) {
-                    showToast(`ไม่พบรหัสห้อง ${codeInput} กรุณาตรวจสอบอีกครั้ง`, 'warning');
-                    return;
-                }
-
-                const data = snap.data();
-                const players = JSON.parse(data.playersJson || '[]');
-                const logs = JSON.parse(data.logsJson || '[]');
-
-                const existingIdx = players.findIndex(p => p.uid === currentUser.uid);
-                if (existingIdx === -1) {
-                    if (players.length >= 4) {
-                        showToast('ห้องนี้มีผู้เล่นครบ 4 คนแล้ว!', 'warning');
-                        return;
-                    }
-                    if (data.status === 'PLAYING') {
-                        showToast('ห้องนี้เริ่มแจกไพ่ไปแล้ว ไม่สามารถเข้าร่วมกลางคันได้', 'warning');
-                        return;
-                    }
-
-                    players.push({
-                        uid: currentUser.uid,
-                        id: players.length,
-                        name: playerName,
-                        isAI: false,
-                        hand: [],
-                        melds: [],
-                        hasMelded: false,
-                        penalties: 0,
-                        penaltyHistory: []
-                    });
-
-                    logs.unshift({ text: `👋 <strong>${playerName}</strong> เข้าร่วมห้องแล้ว!`, color: 'text-sky-300' });
-
-                    await updateDoc(roomDocRef, {
-                        playersJson: JSON.stringify(players),
-                        logsJson: JSON.stringify(logs.slice(0, 35)),
-                        updatedAt: Date.now()
-                    });
-                }
-
-                onlineSession.isOnline = true;
-                onlineSession.roomCode = codeInput;
-                onlineSession.isHost = (data.hostUid === currentUser.uid);
-                onlineSession.myUid = currentUser.uid;
-
-                subscribeToOnlineRoom(codeInput);
-                updateHeaderModeUI();
-                updateLobbyModalView();
-                showToast(`เข้าร่วมห้อง ${codeInput} สำเร็จ!`, 'success');
-            } catch (err) {
-                console.error("Join room error:", err);
-                showToast('เกิดข้อผิดพลาดในการเข้าห้อง', 'warning');
-            }
-        }
-
-        function subscribeToOnlineRoom(roomCode) {
-            if (roomUnsubscribe) roomUnsubscribe();
-
-            const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dummy_rooms', roomCode);
-            roomUnsubscribe = onSnapshot(roomDocRef, (snap) => {
-                if (!snap.exists()) return;
-                const data = snap.data();
-
-                onlineSession.isHost = (data.hostUid === onlineSession.myUid);
-
-                const syncedPlayers = JSON.parse(data.playersJson || '[]');
-                const syncedDeck = JSON.parse(data.deckJson || '[]');
-                const syncedDiscard = JSON.parse(data.discardPileJson || '[]');
-                const syncedLogs = JSON.parse(data.logsJson || '[]');
-
-                // Preserve local player hand selections if still in hand
-                const prevSelectedHand = gameState.selectedHandIds;
-                const prevSelectedDiscard = gameState.selectedDiscardId;
-                const prevSelectedMeld = gameState.selectedMeldRef;
-
-                const wasStatus = gameState.status;
-
-                gameState.status = data.status || 'WAITING';
-                gameState.players = syncedPlayers;
-                gameState.deck = syncedDeck;
-                gameState.discardPile = syncedDiscard;
-                gameState.currentTurnIndex = data.currentTurnIndex || 0;
-                gameState.turnPhase = data.turnPhase || 'START';
-                gameState.turnCounter = data.turnCounter || 1;
-                gameState.logs = syncedLogs;
-                gameState.winnerId = data.winnerId;
-                gameState.endReason = data.endReason || '';
-
-                gameState.selectedHandIds = prevSelectedHand;
-                gameState.selectedDiscardId = prevSelectedDiscard;
-                gameState.selectedMeldRef = prevSelectedMeld;
-
-                renderWaitingRoomPlayers();
-                renderSyncedLogs();
-                renderAll();
-
-                // Auto close lobby modal when match transitions from WAITING to PLAYING
-                if (wasStatus === 'WAITING' && gameState.status === 'PLAYING') {
-                    closeLobbyModal();
-                    closeEndGameModalOnly();
-                    showToast('เริ่มเกมออนไลน์แล้ว! ขอให้โชคดี', 'success');
-                }
-
-                // Show EndGame modal when GAMEOVER
-                if (gameState.turnPhase === 'GAMEOVER' && gameState.status === 'GAMEOVER') {
-                    setTimeout(() => showEndGameModal(), 400);
-                }
-
-                // If Host and current turn belongs to an AI Bot in an online room, Host drives AI turn
-                if (onlineSession.isHost && gameState.status === 'PLAYING' && gameState.turnPhase !== 'GAMEOVER') {
-                    const activePlayer = gameState.players[gameState.currentTurnIndex];
-                    if (activePlayer && activePlayer.isAI) {
-                        setTimeout(() => executeAITurn(activePlayer), 900);
-                    }
-                }
-            }, (err) => {
-                console.error("Room snapshot error:", err);
-            });
-        }
-
-        async function pushGameStateToFirestore() {
-            if (!onlineSession.isOnline || !onlineSession.roomCode || !db) return;
-            const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'dummy_rooms', onlineSession.roomCode);
-
-            try {
-                await updateDoc(roomDocRef, {
-                    status: gameState.status,
-                    playersJson: JSON.stringify(gameState.players),
-                    deckJson: JSON.stringify(gameState.deck),
-                    discardPileJson: JSON.stringify(gameState.discardPile),
-                    currentTurnIndex: gameState.currentTurnIndex,
-                    turnPhase: gameState.turnPhase,
-                    turnCounter: gameState.turnCounter,
-                    logsJson: JSON.stringify(gameState.logs.slice(0, 35)),
-                    winnerId: gameState.winnerId,
-                    endReason: gameState.endReason,
-                    updatedAt: Date.now()
-                });
-            } catch (err) {
-                console.error("Failed to sync state to Firestore:", err);
-            }
-        }
-
-        function renderWaitingRoomPlayers() {
-            const countEl = document.getElementById('waitingPlayerCount');
-            const listEl = document.getElementById('waitingPlayersList');
-            const hostControls = document.getElementById('hostWaitingControls');
-            const guestNotice = document.getElementById('guestWaitingNotice');
-
-            if (!countEl || !listEl) return;
-            countEl.textContent = gameState.players.length;
-
-            listEl.innerHTML = gameState.players.map((p, idx) => {
-                const isMe = p.uid === onlineSession.myUid;
-                return `
-                    <div class="flex items-center justify-between bg-black/30 px-3.5 py-2 rounded-xl border border-white/10">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-6 h-6 rounded-lg ${p.isAI ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'} flex items-center justify-center text-xs font-bold">
-                                ${idx + 1}
-                            </span>
-                            <span class="text-sm font-semibold text-white">${p.name}</span>
-                            ${isMe ? '<span class="text-[10px] bg-sky-500/30 text-sky-200 px-2 py-0.5 rounded-full">คุณ</span>' : ''}
-                            ${p.isAI ? '<span class="text-[10px] bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-full">บอท AI</span>' : ''}
-                        </div>
-                        <span class="text-xs text-emerald-300"><i class="fa-solid fa-circle-check"></i> พร้อม</span>
-                    </div>
-                `;
-            }).join('');
-
-            if (onlineSession.isHost) {
-                hostControls.classList.remove('hidden');
-                guestNotice.classList.add('hidden');
-            } else {
-                hostControls.classList.add('hidden');
-                guestNotice.classList.remove('hidden');
-            }
-        }
-
-        async function hostAddBotToRoom() {
-            if (!onlineSession.isHost) return;
-            if (gameState.players.length >= 4) {
-                showToast('ผู้เล่นในห้องครบ 4 คนแล้ว!', 'warning');
-                return;
-            }
-            const botNames = ['บอทสมศักดิ์', 'บอทเจ๊พร', 'บอทเฮียหมู'];
-            const botIdx = gameState.players.length;
-            gameState.players.push({
-                uid: `bot_online_${Date.now()}_${botIdx}`,
-                id: botIdx,
-                name: botNames[(botIdx - 1) % botNames.length] + ' (AI)',
-                isAI: true,
-                hand: [],
-                melds: [],
-                hasMelded: false,
-                penalties: 0,
-                penaltyHistory: []
-            });
-            await pushGameStateToFirestore();
-        }
-
-        async function hostRemoveBotFromRoom() {
-            if (!onlineSession.isHost) return;
-            const lastBotIdx = gameState.players.map(p => p.isAI).lastIndexOf(true);
-            if (lastBotIdx === -1) {
-                showToast('ไม่มีบอทในห้องให้ลบแล้ว', 'info');
-                return;
-            }
-            gameState.players.splice(lastBotIdx, 1);
-            gameState.players.forEach((p, i) => p.id = i);
-            await pushGameStateToFirestore();
-        }
-
-        async function hostStartOnlineGame() {
-            if (!onlineSession.isHost) return;
-            if (gameState.players.length < 2) {
-                showToast('ต้องมีผู้เล่นอย่างน้อย 2 คนในห้อง (กด "+เพิ่มบอทเข้าห้อง" หรือรอเพื่อนเข้ามา)', 'warning');
-                return;
-            }
-
-            const totalPlayers = gameState.players.length;
-            const dealCount = totalPlayers === 2 ? 11 : (totalPlayers === 3 ? 9 : 7);
-            const fullDeck = shuffleCards(createDeck());
-
-            gameState.players.forEach((p, idx) => {
-                p.id = idx;
-                p.hand = fullDeck.splice(0, dealCount);
-                sortHandArray(p.hand, 'rank');
-                p.melds = [];
-                p.hasMelded = false;
-                p.penalties = 0;
-                p.penaltyHistory = [];
-            });
-
-            const firstDiscard = fullDeck.splice(0, 1)[0];
-            firstDiscard.isHead = true;
-
-            gameState.status = 'PLAYING';
-            gameState.deck = fullDeck;
-            gameState.discardPile = [firstDiscard];
-            gameState.currentTurnIndex = 0;
-            gameState.turnPhase = 'START';
-            gameState.turnCounter = 1;
-            gameState.winnerId = null;
-            gameState.endReason = '';
-            gameState.logs = [
-                { text: `👑 ไพ่หัวประจำตานี้คือ <strong>${firstDiscard.rank}${firstDiscard.suit}</strong> (+50 แต้ม)`, color: 'text-amber-300 font-medium' },
-                { text: `🃏 เริ่มเกมออนไลน์! แจกไพ่คนละ ${dealCount} ใบ`, color: 'text-emerald-300 font-medium' }
-            ];
-
-            closeLobbyModal();
-            closeEndGameModalOnly();
-            await pushGameStateToFirestore();
-        }
-
-        function leaveOnlineRoom() {
-            if (roomUnsubscribe) {
-                roomUnsubscribe();
-                roomUnsubscribe = null;
-            }
-            onlineSession.isOnline = false;
-            onlineSession.roomCode = null;
-            onlineSession.isHost = false;
-            updateHeaderModeUI();
-            closeLobbyModal();
-            startSinglePlayerGame();
-            showToast('ออกจากห้องออนไลน์ กลับสู่โหมดเล่นกับบอทแล้ว', 'info');
-        }
-
-        function switchToSinglePlayer() {
-            leaveOnlineRoom();
-        }
-
-        function copyRoomCode() {
-            if (!onlineSession.roomCode) return;
-            const tempInput = document.createElement('input');
-            tempInput.value = onlineSession.roomCode;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            showToast(`คัดลอกรหัสห้อง ${onlineSession.roomCode} แล้ว! ส่งให้เพื่อนได้เลย`, 'success');
-        }
-
-        /**************************************************************
-         * 7. HUMAN PLAYER ACTIONS (จั่วไพ่, เก็บเกิด, ลงชุด, ฝาก, ทิ้ง, น็อก)
-         **************************************************************/
-        function toggleHandCardSelection(cardId) {
-            if (!isMyTurn()) return;
-            if (gameState.selectedHandIds.has(cardId)) {
-                gameState.selectedHandIds.delete(cardId);
-            } else {
-                gameState.selectedHandIds.add(cardId);
-            }
-            renderAll();
-        }
-
-        function toggleDiscardSelection(cardId) {
-            if (!isMyTurn()) return;
-            if (gameState.turnPhase !== 'START') {
-                showToast('คุณจั่วหรือเกิดไปแล้วในเทิร์นนี้ ไม่สามารถเก็บจากกองทิ้งได้อีก', 'warning');
-                return;
-            }
-            if (gameState.selectedDiscardId === cardId) {
-                gameState.selectedDiscardId = null;
-            } else {
-                gameState.selectedDiscardId = cardId;
-            }
-            renderAll();
-        }
-
-        function toggleMeldSelection(ownerId, meldIndex) {
-            if (!isMyTurn()) return;
-            if (
-                gameState.selectedMeldRef &&
-                gameState.selectedMeldRef.ownerId === ownerId &&
-                gameState.selectedMeldRef.meldIndex === meldIndex
-            ) {
-                gameState.selectedMeldRef = null;
-            } else {
-                gameState.selectedMeldRef = { ownerId, meldIndex };
-            }
-            renderAll();
-        }
-
-        function clearSelections() {
-            gameState.selectedHandIds.clear();
-            gameState.selectedDiscardId = null;
-            gameState.selectedMeldRef = null;
-            renderAll();
-        }
-
-        // Action 1: Draw 1 card from Deck
-        async function handleDrawCard() {
-            if (!isMyTurn()) return;
-            if (gameState.turnPhase !== 'START') {
-                showToast('คุณเริ่มเทิร์นไปแล้ว กรุณาลงไพ่ ฝากไพ่ หรือทิ้งไพ่เพื่อจบเทิร์น', 'warning');
-                return;
-            }
-            if (gameState.deck.length === 0) {
-                await endGameByEmptyDeck();
-                return;
-            }
-
-            const drawnCard = gameState.deck.pop();
-            const me = getMyPlayer();
-            me.hand.push(drawnCard);
-
-            gameState.turnPhase = 'MAIN';
-            gameState.selectedDiscardId = null;
-
-            addGameLog(`👆 <strong>${me.name}</strong> จั่วไพ่ 1 ใบจากกองจั่ว`, 'text-sky-200');
-            showToast(`จั่วได้ไพ่ ${drawnCard.rank}${drawnCard.suit}`, 'info');
-            renderAll();
-            await pushGameStateToFirestore();
-        }
-
-        // Action 2: Pick up from Discard Pile & Immediately Meld
-        async function handlePickupFromDiscard() {
-            if (!isMyTurn()) return;
-            if (gameState.turnPhase !== 'START') {
-                showToast('เก็บไพ่จากกองได้เฉพาะตอนเริ่มเทิร์น (ก่อนจั่วไพ่) เท่านั้น!', 'warning');
-                return;
-            }
-            if (!gameState.selectedDiscardId) {
-                showToast('กรุณาคลิกเลือกไพ่เป้าหมายในกองทิ้ง 1 ใบก่อน', 'warning');
-                return;
-            }
-            if (gameState.selectedHandIds.size < 2) {
-                showToast('กรุณาคลิกเลือกไพ่บนมืออย่างน้อย 2 ใบเพื่อนำมาผสมกับไพ่ในกองทิ้ง', 'warning');
-                return;
-            }
-
-            const me = getMyPlayer();
-            const myIdx = getMyPlayerIndex();
-            const targetIdx = gameState.discardPile.findIndex(c => c.id === gameState.selectedDiscardId);
-            if (targetIdx === -1) return;
-
-            const targetDiscardCard = gameState.discardPile[targetIdx];
-            const selectedHandCards = me.hand.filter(c => gameState.selectedHandIds.has(c.id));
-
-            const candidateMeld = [targetDiscardCard, ...selectedHandCards];
-            const check = validateMeld(candidateMeld);
-
-            if (!check.valid) {
-                showToast('ไพ่ที่เลือกยังไม่เป็นชุดตอง หรือชุดเรียงดอกเดียวกันที่ถูกต้อง!', 'warning');
-                return;
-            }
-
-            const pickedUpCards = gameState.discardPile.slice(targetIdx);
-            const extraPickedCards = pickedUpCards.slice(1);
-            const remainingHandCount = (me.hand.length - selectedHandCards.length) + extraPickedCards.length;
-
-            if (remainingHandCount < 1) {
-                showToast('ไม่สามารถเกิดได้ เพราะต้องเหลือไพ่ในมืออย่างน้อย 1 ใบไว้ทิ้งจบเทิร์น!', 'warning');
-                return;
-            }
-
-            // Check "ทิ้งไพ่โง่" penalty (-50 to whoever discarded targetCard)
-            if (targetDiscardCard.discardedBy !== null && targetDiscardCard.discardedBy !== myIdx) {
-                const culprit = gameState.players[targetDiscardCard.discardedBy];
-                if (culprit) {
-                    culprit.penalties -= 50;
-                    culprit.penaltyHistory.push(`ทิ้งไพ่โง่ให้ ${me.name} เก็บเกิด (${targetDiscardCard.rank}${targetDiscardCard.suit}) -50`);
-                    addGameLog(`💥 <strong>${culprit.name}</strong> ทิ้งไพ่ให้ <strong>${me.name}</strong> เก็บเกิด (${targetDiscardCard.rank}${targetDiscardCard.suit}) โดนปรับ <strong>-50 แต้ม!</strong>`, 'text-amber-300 font-semibold');
-                }
-            }
-
-            gameState.discardPile.splice(targetIdx);
-            me.hand = me.hand.filter(c => !gameState.selectedHandIds.has(c.id));
-
-            extraPickedCards.forEach(c => {
-                c.discardedBy = null;
-                me.hand.push(c);
-            });
-
-            check.sortedCards.forEach(c => c.meldOwnerId = myIdx);
-            me.melds.push({
-                type: check.type,
-                cards: check.sortedCards
-            });
-            me.hasMelded = true;
-
-            gameState.turnPhase = 'MAIN';
-            clearSelections();
-
-            const meldStr = check.sortedCards.map(c => `${c.rank}${c.suit}`).join(' ');
-            addGameLog(`✨ <strong>${me.name}</strong> เก็บ <strong>${targetDiscardCard.rank}${targetDiscardCard.suit}</strong> (กวาดไพ่ ${pickedUpCards.length} ใบ) มาเกิดชุด [${meldStr}]`, 'text-emerald-300 font-medium');
-            showToast(`เกิดชุดไพ่ [${meldStr}] สำเร็จ!`, 'success');
-            renderAll();
-            await pushGameStateToFirestore();
-        }
-
-        // Action 3: Meld from Hand
-        async function handleMeldFromHand() {
-            if (!isMyTurn()) return;
-            if (gameState.turnPhase !== 'MAIN') {
-                showToast('ต้องจั่วไพ่ หรือเก็บไพ่เกิดจากกองก่อน จึงจะลงชุดไพ่ในมือได้!', 'warning');
-                return;
-            }
-            if (gameState.selectedHandIds.size < 3) {
-                showToast('กรุณาเลือกไพ่ในมืออย่างน้อย 3 ใบเพื่อลงชุดไพ่ (ตอง หรือ เรียงสีเดียวกัน)', 'warning');
-                return;
-            }
-
-            const me = getMyPlayer();
-            const myIdx = getMyPlayerIndex();
-            const selectedCards = me.hand.filter(c => gameState.selectedHandIds.has(c.id));
-
-            if (me.hand.length - selectedCards.length < 1) {
-                showToast('ต้องเหลือไพ่ในมืออย่างน้อย 1 ใบสำหรับทิ้งจบเทิร์น (หรือน็อก)!', 'warning');
-                return;
-            }
-
-            const check = validateMeld(selectedCards);
-            if (!check.valid) {
-                showToast('ไพ่ที่เลือกไม่ใช่ไพ่ตอง หรือไพ่เรียงดอกเดียวกัน!', 'warning');
-                return;
-            }
-
-            me.hand = me.hand.filter(c => !gameState.selectedHandIds.has(c.id));
-            check.sortedCards.forEach(c => c.meldOwnerId = myIdx);
-            me.melds.push({
-                type: check.type,
-                cards: check.sortedCards
-            });
-            me.hasMelded = true;
-
-            clearSelections();
-            const meldStr = check.sortedCards.map(c => `${c.rank}${c.suit}`).join(' ');
-            addGameLog(`🃏 <strong>${me.name}</strong> ลงชุดไพ่ใหม่จากมือ [${meldStr}]`, 'text-emerald-300');
-            showToast(`ลงชุดไพ่ [${meldStr}] สำเร็จ!`, 'success');
-            renderAll();
-            await pushGameStateToFirestore();
-        }
-
-        // Action 4: Lay-off (ฝากไพ่)
-        async function handleLayOff() {
-            if (!isMyTurn()) return;
-            if (gameState.turnPhase !== 'MAIN') {
-                showToast('ต้องจั่วไพ่หรือเก็บเกิดก่อน จึงจะฝากไพ่ได้!', 'warning');
-                return;
-            }
-            const me = getMyPlayer();
-            const myIdx = getMyPlayerIndex();
-            if (!me.hasMelded) {
-                showToast('คุณต้องเคย "เกิด" อย่างน้อย 1 ชุดก่อน จึงจะมีสิทธิ์ฝากไพ่ได้!', 'warning');
-                return;
-            }
-            if (gameState.selectedHandIds.size !== 1) {
-                showToast('กรุณาคลิกเลือกไพ่ในมือเพียง 1 ใบที่ต้องการนำไปฝาก', 'warning');
-                return;
-            }
-            if (me.hand.length <= 1) {
-                showToast('ไพ่ใบสุดท้ายในมือห้ามนำไปฝาก! ต้องใช้ทิ้งจบเทิร์นหรือกด "น็อก" เท่านั้น', 'warning');
-                return;
-            }
-
-            const cardId = Array.from(gameState.selectedHandIds)[0];
-            const cardObj = me.hand.find(c => c.id === cardId);
-
-            let targetOwner = null;
-            let targetMeld = null;
-
-            if (gameState.selectedMeldRef) {
-                const owner = gameState.players[gameState.selectedMeldRef.ownerId];
-                const meld = owner ? owner.melds[gameState.selectedMeldRef.meldIndex] : null;
-                if (meld && canLayOffCard(cardObj, meld)) {
-                    targetOwner = owner;
-                    targetMeld = meld;
-                } else {
-                    showToast('ไพ่ใบนี้ไม่สามารถฝากเข้าชุดไพ่ที่คุณคลิกเลือกได้!', 'warning');
-                    return;
-                }
-            } else {
-                for (const p of gameState.players) {
-                    for (const m of p.melds) {
-                        if (canLayOffCard(cardObj, m)) {
-                            targetOwner = p;
-                            targetMeld = m;
-                            break;
-                        }
-                    }
-                    if (targetMeld) break;
-                }
-            }
-
-            if (!targetMeld) {
-                showToast('ไม่มีชุดไพ่ใดบนโต๊ะที่สามารถรับฝากไพ่ใบนี้ได้!', 'warning');
-                return;
-            }
-
-            me.hand = me.hand.filter(c => c.id !== cardObj.id);
-            cardObj.meldOwnerId = myIdx;
-            const updatedCheck = validateMeld([...targetMeld.cards, cardObj]);
-            targetMeld.cards = updatedCheck.sortedCards;
-
-            clearSelections();
-            addGameLog(`📌 <strong>${me.name}</strong> ฝากไพ่ <strong>${cardObj.rank}${cardObj.suit}</strong> เข้าชุดของ ${targetOwner.name}`, 'text-purple-300');
-            showToast(`ฝากไพ่ ${cardObj.rank}${cardObj.suit} สำเร็จ!`, 'success');
-            renderAll();
-            await pushGameStateToFirestore();
-        }
-
-        // Action 5: Discard 1 card to end turn
-        async function handleDiscardCard() {
-            if (!isMyTurn()) return;
-            if (gameState.turnPhase !== 'MAIN') {
-                showToast('กรุณาจั่วไพ่ หรือเก็บไพ่เกิดจากกองก่อนทิ้งไพ่!', 'warning');
-                return;
-            }
-            if (gameState.selectedHandIds.size !== 1) {
-                showToast('กรุณาเลือกไพ่บนมือเพียง 1 ใบเพื่อทิ้งจบเทิร์น', 'warning');
-                return;
-            }
-
-            const me = getMyPlayer();
-            const myIdx = getMyPlayerIndex();
-            const cardId = Array.from(gameState.selectedHandIds)[0];
-            const cardIndex = me.hand.findIndex(c => c.id === cardId);
-            if (cardIndex === -1) return;
-
-            const [discardedCard] = me.hand.splice(cardIndex, 1);
-            discardedCard.discardedBy = myIdx;
-
-            if (gameState.discardPile.length === 0) {
-                discardedCard.isHead = true;
-                addGameLog(`👑 กองกลางว่าง! <strong>${discardedCard.rank}${discardedCard.suit}</strong> กลายเป็นไพ่หัวใบใหม่`, 'text-amber-300');
-            }
-
-            checkDiscardPenalties(me, discardedCard);
-            gameState.discardPile.push(discardedCard);
-            clearSelections();
-
-            addGameLog(`➡️ <strong>${me.name}</strong> ทิ้งไพ่ <strong>${discardedCard.rank}${discardedCard.suit}</strong> ลงกองกลาง`, 'text-slate-200');
-
-            if (me.hand.length === 0 && me.hasMelded) {
-                await triggerKnockVictory(me, discardedCard);
-                return;
-            }
-
-            await advanceTurn();
-        }
-
-        // Action 6: Knock
-        async function handleKnockGame() {
-            if (!isMyTurn()) return;
-            const me = getMyPlayer();
-            if (gameState.turnPhase !== 'MAIN' || !me.hasMelded || me.hand.length !== 1) {
-                showToast('จะกด "น็อก" ได้ต้องเกิดชุดไพ่แล้ว และเหลือไพ่ในมือเพียง 1 ใบสุดท้ายหลังจั่ว/เกิด!', 'warning');
-                return;
-            }
-            const lastCard = me.hand.pop();
-            await triggerKnockVictory(me, lastCard);
-        }
-
-        async function triggerKnockVictory(winner, knockCard) {
-            winner.penalties += 50;
-            winner.penaltyHistory.push(`โบนัสน็อกปิดเกม +50`);
-            gameState.turnPhase = 'GAMEOVER';
-            gameState.status = 'GAMEOVER';
-            gameState.winnerId = winner.id;
-            gameState.endReason = `🎉 ${winner.name} ทิ้งไพ่ ${knockCard.rank}${knockCard.suit} คว่ำ "น็อก" สำเร็จ! รับโบนัส +50 แต้ม`;
-
-            addGameLog(`🏆 <strong>${winner.name}</strong> น็อกมืด/ทิ้งคว่ำด้วยไพ่ <strong>${knockCard.rank}${knockCard.suit}</strong> จบเกมทันที! (+50 แต้ม)`, 'text-amber-300 font-bold');
-            renderAll();
-            await pushGameStateToFirestore();
-            setTimeout(() => showEndGameModal(), 500);
-        }
-
-        async function endGameByEmptyDeck() {
-            gameState.turnPhase = 'GAMEOVER';
-            gameState.status = 'GAMEOVER';
-            gameState.winnerId = null;
-            gameState.endReason = `กองจั่วไพ่หมด! จบเกมเพื่อนับแต้มรวมบนโต๊ะ`;
-            addGameLog(`🛑 ไพ่ในกองจั่วหมดแล้ว! จบเกมเพื่อนับคะแนนรวม`, 'text-amber-300 font-bold');
-            renderAll();
-            await pushGameStateToFirestore();
-            setTimeout(() => showEndGameModal(), 400);
-        }
-
-        /**************************************************************
-         * 8. TURN MANAGEMENT & AI BOT LOGIC
-         **************************************************************/
-        async function advanceTurn() {
-            if (gameState.turnPhase === 'GAMEOVER') return;
-
-            gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.players.length;
-            if (gameState.currentTurnIndex === 0) {
-                gameState.turnCounter++;
-            }
-            gameState.turnPhase = 'START';
-            clearSelections();
-            renderAll();
-
-            if (onlineSession.isOnline) {
-                await pushGameStateToFirestore();
-            } else {
-                const activePlayer = gameState.players[gameState.currentTurnIndex];
-                if (activePlayer && activePlayer.isAI) {
-                    setTimeout(() => executeAITurn(activePlayer), 850);
-                }
-            }
-        }
-
-        let aiTurnInProgress = false;
-        async function executeAITurn(bot) {
-            if (gameState.turnPhase === 'GAMEOVER' || aiTurnInProgress) return;
-            const activePlayer = gameState.players[gameState.currentTurnIndex];
-            if (!activePlayer || activePlayer.uid !== bot.uid) return;
-
-            aiTurnInProgress = true;
-
-            try {
-                // Step 1: Check if AI can pick up from discard pile
-                let pickedFromDiscard = false;
-                const pickupDecision = findBestDiscardPickupForAI(bot);
-
-                if (pickupDecision) {
-                    const { targetIdx, targetCard, handCardsToUse, meldCheck } = pickupDecision;
-
-                    if (targetCard.discardedBy !== null && targetCard.discardedBy !== bot.id) {
-                        const culprit = gameState.players[targetCard.discardedBy];
-                        if (culprit) {
-                            culprit.penalties -= 50;
-                            culprit.penaltyHistory.push(`ทิ้งไพ่โง่ให้ ${bot.name} เก็บเกิด (${targetCard.rank}${targetCard.suit}) -50`);
-                            addGameLog(`💥 <strong>${culprit.name}</strong> ทิ้งไพ่ให้ <strong>${bot.name}</strong> เก็บเกิด (${targetCard.rank}${targetCard.suit}) โดนปรับ <strong>-50 แต้ม!</strong>`, 'text-amber-300 font-semibold');
-                        }
-                    }
-
-                    const pickedSlice = gameState.discardPile.splice(targetIdx);
-                    const extraCards = pickedSlice.slice(1);
-
-                    const usedIds = new Set(handCardsToUse.map(c => c.id));
-                    bot.hand = bot.hand.filter(c => !usedIds.has(c.id));
-                    extraCards.forEach(c => {
-                        c.discardedBy = null;
-                        bot.hand.push(c);
-                    });
-
-                    meldCheck.sortedCards.forEach(c => c.meldOwnerId = bot.id);
-                    bot.melds.push({
-                        type: meldCheck.type,
-                        cards: meldCheck.sortedCards
-                    });
-                    bot.hasMelded = true;
-                    pickedFromDiscard = true;
-
-                    const meldStr = meldCheck.sortedCards.map(c => `${c.rank}${c.suit}`).join(' ');
-                    addGameLog(`🤖 <strong>${bot.name}</strong> เก็บ <strong>${targetCard.rank}${targetCard.suit}</strong> จากกองกลางมาเกิดชุด [${meldStr}]`, 'text-emerald-300');
-                }
-
-                // Step 2: Otherwise draw from deck
-                if (!pickedFromDiscard) {
-                    if (gameState.deck.length === 0) {
-                        aiTurnInProgress = false;
-                        await endGameByEmptyDeck();
-                        return;
-                    }
-                    const drawn = gameState.deck.pop();
-                    bot.hand.push(drawn);
-                    addGameLog(`🤖 <strong>${bot.name}</strong> จั่วไพ่ 1 ใบจากกอง`, 'text-slate-300');
-                }
-
-                gameState.turnPhase = 'MAIN';
-
-                // Step 3: Lay down melds in hand
-                let meldedMore = true;
-                while (meldedMore && bot.hand.length >= 4) {
-                    meldedMore = false;
-                    const handMeld = findHandMeldForAI(bot.hand);
-                    if (handMeld) {
-                        const usedIds = new Set(handMeld.sortedCards.map(c => c.id));
-                        bot.hand = bot.hand.filter(c => !usedIds.has(c.id));
-                        handMeld.sortedCards.forEach(c => c.meldOwnerId = bot.id);
-                        bot.melds.push({
-                            type: handMeld.type,
-                            cards: handMeld.sortedCards
-                        });
-                        bot.hasMelded = true;
-                        meldedMore = true;
-                        const meldStr = handMeld.sortedCards.map(c => `${c.rank}${c.suit}`).join(' ');
-                        addGameLog(`🤖 <strong>${bot.name}</strong> ลงชุดไพ่เพิ่ม [${meldStr}]`, 'text-emerald-300');
-                    }
-                }
-
-                // Step 4: Lay off cards
-                if (bot.hasMelded && bot.hand.length > 1) {
-                    let laidOff = true;
-                    while (laidOff && bot.hand.length > 1) {
-                        laidOff = false;
-                        for (let i = 0; i < bot.hand.length; i++) {
-                            const candidate = bot.hand[i];
-                            for (const p of gameState.players) {
-                                for (const m of p.melds) {
-                                    if (canLayOffCard(candidate, m)) {
-                                        bot.hand.splice(i, 1);
-                                        candidate.meldOwnerId = bot.id;
-                                        m.cards = validateMeld([...m.cards, candidate]).sortedCards;
-                                        addGameLog(`📌 <strong>${bot.name}</strong> ฝากไพ่ <strong>${candidate.rank}${candidate.suit}</strong> เข้าชุดของ ${p.name}`, 'text-purple-300');
-                                        laidOff = true;
-                                        break;
-                                    }
-                                }
-                                if (laidOff) break;
-                            }
-                            if (laidOff) break;
-                        }
-                    }
-                }
-
-                // Step 5: Check Knock
-                if (bot.hasMelded && bot.hand.length === 1) {
-                    const knockCard = bot.hand.pop();
-                    aiTurnInProgress = false;
-                    await triggerKnockVictory(bot, knockCard);
-                    return;
-                }
-
-                // Step 6: Discard safest card
-                const cardToDiscard = chooseSafestDiscardForAI(bot);
-                bot.hand = bot.hand.filter(c => c.id !== cardToDiscard.id);
-                cardToDiscard.discardedBy = bot.id;
-
-                if (gameState.discardPile.length === 0) {
-                    cardToDiscard.isHead = true;
-                }
-
-                checkDiscardPenalties(bot, cardToDiscard);
-                gameState.discardPile.push(cardToDiscard);
-
-                addGameLog(`➡️ <strong>${bot.name}</strong> ทิ้งไพ่ <strong>${cardToDiscard.rank}${cardToDiscard.suit}</strong>`, 'text-slate-200');
-                renderAll();
-
-                if (gameState.deck.length === 0) {
-                    aiTurnInProgress = false;
-                    await endGameByEmptyDeck();
-                    return;
-                }
-
-                aiTurnInProgress = false;
-                setTimeout(() => advanceTurn(), 450);
-            } catch (err) {
-                aiTurnInProgress = false;
-                console.error("AI turn error:", err);
-            }
-        }
-
-        function findBestDiscardPickupForAI(bot) {
-            for (let idx = 0; idx < gameState.discardPile.length; idx++) {
-                const targetCard = gameState.discardPile[idx];
-                const extraCount = gameState.discardPile.length - 1 - idx;
-
-                for (let i = 0; i < bot.hand.length; i++) {
-                    for (let j = i + 1; j < bot.hand.length; j++) {
-                        const pair = [bot.hand[i], bot.hand[j]];
-                        const check = validateMeld([targetCard, ...pair]);
-                        if (check.valid) {
-                            const remaining = (bot.hand.length - 2) + extraCount;
-                            if (remaining >= 1) {
-                                return { targetIdx: idx, targetCard, handCardsToUse: pair, meldCheck: check };
-                            }
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-
-        function findHandMeldForAI(hand) {
-            for (let i = 0; i < hand.length; i++) {
-                for (let j = i + 1; j < hand.length; j++) {
-                    for (let k = j + 1; k < hand.length; k++) {
-                        const trio = [hand[i], hand[j], hand[k]];
-                        const check = validateMeld(trio);
-                        if (check.valid) return check;
-                    }
-                }
-            }
-            return null;
-        }
-
-        function chooseSafestDiscardForAI(bot) {
-            const headCard = gameState.discardPile.find(c => c.isHead);
-            const scoredCandidates = bot.hand.map(card => {
-                let riskScore = 0;
-                if (isSpeto(card)) riskScore += 200;
-
-                for (const p of gameState.players) {
-                    for (const m of p.melds) {
-                        if (canLayOffCard(card, m)) riskScore += 500;
-                    }
-                }
-
-                if (headCard) {
-                    if (card.rankValue === headCard.rankValue) riskScore += 400;
-                    if (card.suit === headCard.suit && Math.abs(card.rankValue - headCard.rankValue) === 1) {
-                        riskScore += 400;
-                    }
-                }
-
-                for (const other of bot.hand) {
-                    if (other.id === card.id) continue;
-                    if (other.rankValue === card.rankValue) riskScore += 30;
-                    if (other.suit === card.suit && Math.abs(other.rankValue - card.rankValue) <= 2) {
-                        riskScore += 25;
-                    }
-                }
-
-                riskScore += getCardPoints(card);
-                return { card, riskScore };
-            });
-
-            scoredCandidates.sort((a, b) => a.riskScore - b.riskScore);
-            return scoredCandidates[0].card;
-        }
-
-        /**************************************************************
-         * 9. SCORING & SORTING UTILITIES
-         **************************************************************/
-        function calculatePlayerMeldScore(playerId) {
-            let total = 0;
-            for (const p of gameState.players) {
-                for (const m of p.melds) {
-                    for (const c of m.cards) {
-                        const owner = (c.meldOwnerId !== undefined && c.meldOwnerId !== null) ? c.meldOwnerId : p.id;
-                        if (owner === playerId) {
-                            total += getCardPoints(c);
-                        }
-                    }
-                }
-            }
-            return total;
-        }
-
-        function calculateHandDeadwoodScore(player) {
-            const rawSum = player.hand.reduce((sum, c) => sum + getCardPoints(c), 0);
-            return player.hasMelded ? rawSum : rawSum * 2;
-        }
-
-        function sortHandArray(hand, mode) {
-            if (mode === 'rank') {
-                hand.sort((a, b) => (a.rankValue - b.rankValue) || (a.suitOrder - b.suitOrder));
-            } else {
-                hand.sort((a, b) => (a.suitOrder - b.suitOrder) || (a.rankValue - b.rankValue));
-            }
-        }
-
-        function sortPlayerHand(mode) {
-            const me = getMyPlayer();
-            if (!me) return;
-            sortHandArray(me.hand, mode);
-            renderAll();
-        }
-
-        /**************************************************************
-         * 10. UI RENDERING (แสดงผลไพ่ ตัวช่วยแนะนำ และผู้เล่นทั้งหมด)
-         **************************************************************/
-        function createCardHTML(card, options = {}) {
-            const {
-                isSelected = false,
-                isDiscardSelected = false,
-                isSmall = false,
-                onClickJs = '',
-                showHeadBadge = true,
-                hintType = null,    // 'PICKUP', 'MELD', 'LAYOFF', 'DANGER'
-                hintLabel = '',
-                tooltipText = ''
-            } = options;
-
-            const sizeClass = isSmall ? 'small-card' : '';
-            const selectClass = isSelected ? 'selected' : (isDiscardSelected ? 'discard-selected' : '');
-
-            let hintGlowClass = '';
-            let hintTopTag = '';
-            if (smartHintEnabled && !isSmall && hintType) {
-                if (hintType === 'PICKUP') {
-                    hintGlowClass = 'hint-pickup-glow';
-                    hintTopTag = `<span class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shadow whitespace-nowrap">💡 เก็บเกิดได้!</span>`;
-                } else if (hintType === 'LAYOFF') {
-                    hintGlowClass = 'hint-layoff-glow';
-                    hintTopTag = `<span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow whitespace-nowrap">✨ ฝากได้</span>`;
-                } else if (hintType === 'MELD') {
-                    hintGlowClass = 'hint-meld-glow';
-                    hintTopTag = `<span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow whitespace-nowrap">ชุดเกิด</span>`;
-                }
-            }
-
-            // Danger badge on bottom-left if discarding this card causes a -50 penalty
-            const dangerBadge = (smartHintEnabled && !isSmall && tooltipText)
-                ? `<span title="${tooltipText}" class="absolute bottom-1 left-1 text-[9px] bg-rose-600 text-white px-1 rounded font-bold shadow flex items-center gap-0.5">⚠️เสี่ยง</span>`
-                : '';
-
-            const spetoBadge = isSpeto(card)
-                ? `<span class="absolute bottom-1 right-1 text-[9px] bg-pink-500 text-white px-1 rounded font-bold">50</span>`
-                : '';
-
-            const headBadge = (card.isHead && showHeadBadge)
-                ? `<span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shadow border border-black/20 whitespace-nowrap z-10">👑 หัว</span>`
-                : '';
-
-            return `
-                <div onclick="${onClickJs}" title="${tooltipText}" class="playing-card ${sizeClass} ${selectClass} ${hintGlowClass} ${card.colorClass} flex flex-col justify-between p-1.5 select-none">
-                    ${headBadge || hintTopTag}
-                    <div class="flex flex-col items-start leading-none">
-                        <span class="${isSmall ? 'text-xs' : 'text-sm md:text-base'} font-extrabold tracking-tighter">${card.rank}</span>
-                        <span class="${isSmall ? 'text-xs' : 'text-sm'}">${card.suit}</span>
-                    </div>
-                    <div class="self-center ${isSmall ? 'text-lg' : 'text-2xl md:text-3xl'} leading-none opacity-90">
-                        ${card.suit}
-                    </div>
-                    ${dangerBadge}
-                    ${spetoBadge}
-                </div>
-            `;
-        }
-
-        function renderSmartAssistantPanel() {
-            const panel = document.getElementById('smartAssistantPanel');
-            const listEl = document.getElementById('assistantSuggestionsList');
-            if (!smartHintEnabled) {
-                panel.classList.add('hidden');
-                return;
-            }
-            panel.classList.remove('hidden');
-
-            if (!isMyTurn()) {
-                listEl.innerHTML = `<span class="text-xs text-emerald-200/70 italic">ระบบจะแสดงคำแนะนำอัตโนมัติเมื่อถึงเทิร์นของคุณ...</span>`;
-                return;
-            }
-
-            const chips = [];
-
-            // 1. Pickup from Discard Pile chips
-            currentAnalysis.pickupSuggestions.forEach((sug, idx) => {
-                const comboText = sug.sortedCards.map(c => `${c.rank}${c.suit}`).join(' ');
-                chips.push(`
-                    <button onclick="applyPickupSuggestion(${idx})" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl shadow flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-magnet"></i>
-                        <span>เก็บ <strong>${sug.discardCard.rank}${sug.discardCard.suit}</strong> เกิดชุด [${comboText}] (+${sug.points} แต้ม)</span>
-                    </button>
-                `);
-            });
-
-            // 2. Hand Meld chips
-            currentAnalysis.handMeldSuggestions.forEach((sug, idx) => {
-                const comboText = sug.cards.map(c => `${c.rank}${c.suit}`).join(' ');
-                chips.push(`
-                    <button onclick="applyHandMeldSuggestion(${idx})" class="bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl shadow flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-clone"></i>
-                        <span>ไพ่เกิดในมือ [${comboText}] (+${sug.points} แต้ม)</span>
-                    </button>
-                `);
-            });
-
-            // 3. Layoff chips
-            const me = getMyPlayer();
-            currentAnalysis.layoffSuggestions.forEach((sug, idx) => {
-                const targetMeldStr = sug.meldCards.map(c => `${c.rank}${c.suit}`).join('');
-                if (me && me.hasMelded && me.hand.length > 1) {
-                    chips.push(`
-                        <button onclick="applyLayoffSuggestion(${idx})" class="bg-purple-500 hover:bg-purple-400 text-white font-semibold text-xs px-3 py-1.5 rounded-xl shadow flex items-center gap-1.5 transition">
-                            <i class="fa-solid fa-share-from-square"></i>
-                            <span>ฝาก <strong>${sug.card.rank}${sug.card.suit}</strong> เข้าชุด [${targetMeldStr}]</span>
-                        </button>
-                    `);
-                } else {
-                    chips.push(`
-                        <span class="bg-purple-950/80 border border-purple-400/40 text-purple-200 text-xs px-2.5 py-1 rounded-xl flex items-center gap-1">
-                            <i class="fa-solid fa-lock text-[10px]"></i> มีไพ่ฝากได้ (${sug.card.rank}${sug.card.suit}) แต่ต้องเกิดชุดแรกก่อน
-                        </span>
-                    `);
-                }
-            });
-
-            // 4. Danger count summary
-            if (currentAnalysis.dangerCardsMap.size > 0) {
-                chips.push(`
-                    <span class="bg-rose-500/20 border border-rose-400/40 text-rose-200 text-xs px-2.5 py-1 rounded-xl flex items-center gap-1">
-                        <i class="fa-solid fa-triangle-exclamation text-rose-400"></i> ไพ่เสี่ยงห้ามทิ้ง ${currentAnalysis.dangerCardsMap.size} ใบ (ดูป้าย ⚠️ บนไพ่)
-                    </span>
-                `);
-            }
-
-            if (chips.length === 0) {
-                if (gameState.turnPhase === 'START') {
-                    listEl.innerHTML = `<span class="text-xs text-slate-300">ยังไม่มีชุดที่เก็บเกิดจากกองได้ แนะนำให้กด <strong>"จั่วไพ่"</strong> จากกองจั่ว</span>`;
-                } else {
-                    listEl.innerHTML = `<span class="text-xs text-slate-300">ไม่มีชุดเกิดหรือฝากเพิ่ม แนะนำให้เลือกไพ่ที่ไม่ติดป้าย ⚠️ 1 ใบเพื่อกด <strong>"ทิ้งไพ่จบเทิร์น"</strong></span>`;
-                }
-            } else {
-                listEl.innerHTML = chips.join('');
-            }
-        }
-
-        function renderAll() {
-            if (!gameState.players.length) return;
-
-            const myIdx = getMyPlayerIndex();
-            const me = gameState.players[myIdx];
-            const activePlayer = gameState.players[gameState.currentTurnIndex];
-
-            // Run Smart Play Assistant analysis
-            runSmartAssistantAnalysis();
-            renderSmartAssistantPanel();
-
-            // 1. Update Top Header Status
-            const banner = document.getElementById('turnStatusBanner');
-            if (gameState.turnPhase === 'GAMEOVER') {
-                banner.innerHTML = `<span class="text-amber-300 font-semibold">${gameState.endReason}</span>`;
-            } else if (isMyTurn()) {
-                banner.innerHTML = `<span class="text-amber-300 font-semibold">🎯 ตาของคุณ! (${gameState.turnPhase === 'START' ? 'เลือกจั่วไพ่ หรือ เก็บไพ่จากกองเพื่อเกิด' : 'ลงไพ่ / ฝากไพ่ / เลือกไพ่ 1 ใบเพื่อทิ้งจบเทิร์น'})</span>`;
-            } else if (activePlayer) {
-                banner.innerHTML = `⏳ กำลังรอเทิร์นของ <strong>${activePlayer.name}</strong>...`;
-            }
-
-            document.getElementById('roundTurnCounter').textContent = `รอบที่ ${gameState.turnCounter}`;
-
-            // 2. Render Other Players (Opponents)
-            const opponentsContainer = document.getElementById('opponentsContainer');
-            const opponents = gameState.players.filter((_, idx) => idx !== myIdx);
-            opponentsContainer.className = `grid grid-cols-1 md:grid-cols-${Math.max(1, opponents.length)} gap-2.5`;
-
-            opponentsContainer.innerHTML = opponents.map(opp => {
-                const isOppTurn = gameState.currentTurnIndex === opp.id && gameState.turnPhase !== 'GAMEOVER';
-                const oppTablePts = calculatePlayerMeldScore(opp.id);
-
-                const meldsHtml = opp.melds.length === 0
-                    ? `<span class="text-xs text-white/40 italic">ยังไม่มีชุดไพ่ที่เกิด</span>`
-                    : opp.melds.map((m, mIdx) => {
-                        const isSelectedMeld = gameState.selectedMeldRef &&
-                            gameState.selectedMeldRef.ownerId === opp.id &&
-                            gameState.selectedMeldRef.meldIndex === mIdx;
-                        return `
-                            <div onclick="toggleMeldSelection(${opp.id}, ${mIdx})" 
-                                 class="meld-box selectable-meld ${isSelectedMeld ? 'selected-meld' : ''} flex items-center -space-x-2 bg-black/30 p-1.5 rounded-xl border border-white/15"
-                                 title="คลิกเพื่อเลือกชุดไพ่นี้สำหรับฝากไพ่">
-                                ${m.cards.map(c => createCardHTML(c, { isSmall: true })).join('')}
-                            </div>
-                        `;
-                    }).join('');
-
-                return `
-                    <div class="bg-black/30 backdrop-blur-sm rounded-2xl p-3 border-2 ${isOppTurn ? 'active-turn-glow' : 'border-white/10'} flex flex-col justify-between gap-2">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-xl ${opp.isAI ? 'bg-amber-500/20 border-amber-400/40 text-amber-300' : 'bg-sky-500/20 border-sky-400/40 text-sky-300'} border flex items-center justify-center text-sm">
-                                    <i class="fa-solid ${opp.isAI ? 'fa-robot' : 'fa-user'}"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-xs md:text-sm font-bold text-white flex items-center gap-1.5">
-                                        ${opp.name}
-                                        ${opp.hasMelded
-                                            ? '<span class="text-[10px] bg-emerald-500/30 text-emerald-200 px-1.5 py-0.2 rounded-full">เกิดแล้ว</span>'
-                                            : '<span class="text-[10px] bg-rose-500/30 text-rose-200 px-1.5 py-0.2 rounded-full">ยังไม่เกิด</span>'}
-                                    </h4>
-                                    <div class="text-[11px] text-emerald-200/90 flex items-center gap-3">
-                                        <span>แต้มโต๊ะ: <strong class="text-amber-300">${oppTablePts}</strong></span>
-                                        <span>หักลบ: <strong class="text-sky-300">${opp.penalties}</strong></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1 bg-blue-950/80 border border-blue-400/30 px-2.5 py-1 rounded-xl">
-                                <i class="fa-solid fa-layer-group text-sky-300 text-xs"></i>
-                                <span class="text-xs font-bold text-white">${opp.hand.length}</span>
-                                <span class="text-[10px] text-sky-200">ใบ</span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2 overflow-x-auto py-1 min-h-[74px]">
-                            ${meldsHtml}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // 3. Render Draw Deck & Discard Pile
-            document.getElementById('deckCount').textContent = gameState.deck.length;
-            document.getElementById('deckCountBadge').textContent = gameState.deck.length;
-
-            const drawBtn = document.getElementById('drawDeckBtn');
-            const drawPrompt = document.getElementById('drawPromptBadge');
-            if (isMyTurn() && gameState.turnPhase === 'START') {
-                drawBtn.classList.add('ring-4', 'ring-amber-400/70');
-                drawPrompt.classList.remove('hidden');
-            } else {
-                drawBtn.classList.remove('ring-4', 'ring-amber-400/70');
-                drawPrompt.classList.add('hidden');
-            }
-
-            const discardContainer = document.getElementById('discardPileContainer');
-            if (gameState.discardPile.length === 0) {
-                discardContainer.innerHTML = `<div class="text-xs text-white/40 italic m-auto">กองทิ้งว่างเปล่า (ไพ่ที่ทิ้งใบถัดไปจะกลายเป็นไพ่หัว)</div>`;
-            } else {
-                discardContainer.innerHTML = gameState.discardPile.map((card) => {
-                    const isTarget = gameState.selectedDiscardId === card.id;
-                    const canPickHint = currentAnalysis.pickupCardIdsInDiscard.has(card.id);
-                    return createCardHTML(card, {
-                        isDiscardSelected: isTarget,
-                        hintType: canPickHint ? 'PICKUP' : null,
-                        onClickJs: `toggleDiscardSelection('${card.id}')`
-                    });
-                }).join('');
-            }
-
-            const discardHint = document.getElementById('discardTargetHint');
-            if (gameState.selectedDiscardId) {
-                const c = gameState.discardPile.find(x => x.id === gameState.selectedDiscardId);
-                discardHint.textContent = c ? `เลือกไพ่ในกอง: ${c.rank}${c.suit} (เลือกไพ่มืออีก 2+ ใบแล้วกด "เก็บเกิดจากกอง")` : '';
-                discardHint.classList.remove('hidden');
-            } else {
-                discardHint.classList.add('hidden');
-            }
-
-            // 4. Update Action Hint Text
-            const hintEl = document.getElementById('actionHintText');
-            if (!isMyTurn()) {
-                hintEl.textContent = `คำแนะนำ: รอ ${activePlayer ? activePlayer.name : 'ผู้เล่นอื่น'} เล่นสักครู่...`;
-            } else if (gameState.turnPhase === 'START') {
-                hintEl.textContent = 'คำแนะนำ: กด "จั่วไพ่" 1 ใบ หรือ คลิกไพ่ในกองทิ้ง 1 ใบ + ไพ่ในมือ 2 ใบขึ้นไปเพื่อกด "เก็บเกิดจากกอง"';
-            } else {
-                hintEl.textContent = 'คำแนะนำ: เลือกไพ่ 3+ ใบเพื่อ "ลงชุดไพ่", เลือก 1 ใบเพื่อ "ฝากไพ่", หรือเลือก 1 ใบแล้วกด "ทิ้งไพ่จบเทิร์น"';
-            }
-
-            // 5. Render Local Player Stats, Melds, and Hand
-            if (!me) return;
-            const humanPanel = document.getElementById('humanPlayerPanel');
-            if (isMyTurn()) {
-                humanPanel.classList.add('active-turn-glow');
-            } else {
-                humanPanel.classList.remove('active-turn-glow');
-            }
-
-            document.getElementById('localPlayerNameTitle').textContent = me.name;
-            document.getElementById('playerHandCount').textContent = me.hand.length;
-            document.getElementById('playerTableScore').textContent = calculatePlayerMeldScore(myIdx);
-            document.getElementById('playerPenaltyScore').textContent = me.penalties;
-
-            const meldBadge = document.getElementById('playerMeldedBadge');
-            if (me.hasMelded) {
-                meldBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 font-medium';
-                meldBadge.textContent = '✓ เกิดแล้ว (ฝากไพ่/น็อกได้)';
-            } else {
-                meldBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-rose-500/30 text-rose-200 border border-rose-400/40 font-medium';
-                meldBadge.textContent = 'ยังไม่เกิด (ระวังมืด x2)';
-            }
-
-            const playerMeldsEl = document.getElementById('playerMeldsContainer');
-            if (me.melds.length === 0) {
-                playerMeldsEl.innerHTML = `<span class="text-xs text-white/40 italic m-auto">คุณยังไม่มีชุดไพ่ที่เกิดบนโต๊ะ</span>`;
-            } else {
-                playerMeldsEl.innerHTML = me.melds.map((m, mIdx) => {
-                    const isSelectedMeld = gameState.selectedMeldRef &&
-                        gameState.selectedMeldRef.ownerId === myIdx &&
-                        gameState.selectedMeldRef.meldIndex === mIdx;
-                    return `
-                        <div onclick="toggleMeldSelection(${myIdx}, ${mIdx})" 
-                             class="meld-box selectable-meld ${isSelectedMeld ? 'selected-meld' : ''} flex items-center -space-x-2 bg-black/35 p-1.5 rounded-xl border border-white/15"
-                             title="คลิกเพื่อเลือกชุดไพ่นี้สำหรับฝากไพ่">
-                            ${m.cards.map(c => createCardHTML(c, { isSmall: true })).join('')}
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            const handContainer = document.getElementById('playerHandContainer');
-            handContainer.innerHTML = me.hand.map(card => {
-                const isSelected = gameState.selectedHandIds.has(card.id);
-                let hintType = null;
-                if (currentAnalysis.layoffCardIdsInHand.has(card.id)) hintType = 'LAYOFF';
-                else if (currentAnalysis.meldCardIdsInHand.has(card.id)) hintType = 'MELD';
-
-                const dangerReason = currentAnalysis.dangerCardsMap.get(card.id) || '';
-
-                return createCardHTML(card, {
-                    isSelected: isSelected,
-                    hintType: hintType,
-                    tooltipText: dangerReason,
-                    onClickJs: `toggleHandCardSelection('${card.id}')`
-                });
-            }).join('');
-
-            // 6. Enable / Disable Action Buttons Contextually
-            const canAct = isMyTurn();
-            document.getElementById('btnDraw').disabled = !(canAct && gameState.turnPhase === 'START');
-            document.getElementById('btnPickupMeld').disabled = !(canAct && gameState.turnPhase === 'START' && gameState.selectedDiscardId && gameState.selectedHandIds.size >= 2);
-            document.getElementById('btnMeldHand').disabled = !(canAct && gameState.turnPhase === 'MAIN' && gameState.selectedHandIds.size >= 3 && me.hand.length - gameState.selectedHandIds.size >= 1);
-            document.getElementById('btnLayOff').disabled = !(canAct && gameState.turnPhase === 'MAIN' && me.hasMelded && gameState.selectedHandIds.size === 1 && me.hand.length > 1);
-            document.getElementById('btnDiscard').disabled = !(canAct && gameState.turnPhase === 'MAIN' && gameState.selectedHandIds.size === 1);
-
-            const canKnock = canAct && gameState.turnPhase === 'MAIN' && me.hasMelded && me.hand.length === 1;
-            const knockBtn = document.getElementById('btnKnock');
-            knockBtn.disabled = !canKnock;
-            if (canKnock) {
-                knockBtn.classList.remove('hidden');
-            } else {
-                knockBtn.classList.add('hidden');
-            }
-        }
-
-        /**************************************************************
-         * 11. LOGS, TOASTS & MODALS
-         **************************************************************/
-        function addGameLog(htmlText, colorClass = 'text-slate-200') {
-            gameState.logs.unshift({ text: htmlText, color: colorClass });
-            renderSyncedLogs();
-        }
-
-        function renderSyncedLogs() {
-            const container = document.getElementById('gameLogContainer');
-            if (!container) return;
-            container.innerHTML = gameState.logs.map(item => `
-                <div class="py-1 px-2 rounded-lg bg-white/5 border-l-2 border-emerald-400/50 ${item.color}">
-                    ${item.text}
-                </div>
-            `).join('');
-        }
-
-        let toastTimer = null;
-        function showToast(message, type = 'info') {
-            const banner = document.getElementById('toastBanner');
-            const icon = document.getElementById('toastIcon');
-            const msgEl = document.getElementById('toastMessage');
-
-            msgEl.textContent = message;
-            banner.classList.remove('hidden');
-
-            if (type === 'warning') {
-                icon.className = 'fa-solid fa-triangle-exclamation text-rose-400 text-lg';
-            } else if (type === 'success') {
-                icon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
-            } else {
-                icon.className = 'fa-solid fa-bell text-amber-400 text-lg';
-            }
-
-            if (toastTimer) clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => {
-                banner.classList.add('hidden');
-            }, 3400);
-        }
-
-        function toggleRulesModal(show) {
-            const modal = document.getElementById('rulesModal');
-            if (show) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            } else {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
-
-        function showEndGameModal() {
-            const modal = document.getElementById('endGameModal');
-            const subtitle = document.getElementById('endGameSubtitle');
-            const container = document.getElementById('scoreBreakdownContainer');
-
-            subtitle.textContent = gameState.endReason;
-
-            const results = gameState.players.map(p => {
-                const meldPoints = calculatePlayerMeldScore(p.id);
-                const deadwoodPoints = calculateHandDeadwoodScore(p);
-                const netScore = meldPoints + p.penalties - deadwoodPoints;
-                return { player: p, meldPoints, deadwoodPoints, netScore };
-            });
-
-            results.sort((a, b) => b.netScore - a.netScore);
-
-            container.innerHTML = results.map((res, rankIdx) => {
-                const p = res.player;
-                const isFirst = rankIdx === 0;
-                const handCardsStr = p.hand.length === 0
-                    ? '<span class="text-emerald-300">ไม่มีไพ่ค้างในมือ (0 ใบ)</span>'
-                    : p.hand.map(c => `<span class="inline-block bg-white text-slate-900 px-1.5 py-0.5 rounded text-xs font-bold mr-1">${c.rank}${c.suit} (${getCardPoints(c)})</span>`).join('');
-
-                const penaltyDetails = p.penaltyHistory.length > 0
-                    ? p.penaltyHistory.join(' | ')
-                    : 'ไม่มีรายการปรับ/โบนัส';
-
-                return `
-                    <div class="p-4 rounded-2xl border ${isFirst ? 'bg-amber-500/15 border-amber-400 shadow-lg' : 'bg-white/5 border-white/10'} flex flex-col gap-2">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div class="flex items-center gap-2.5">
-                                <span class="w-8 h-8 rounded-xl ${isFirst ? 'bg-amber-400 text-slate-950' : 'bg-slate-700 text-white'} font-bold flex items-center justify-center text-sm">
-                                    #${rankIdx + 1}
-                                </span>
-                                <div>
-                                    <h3 class="font-bold text-base text-white flex items-center gap-2">
-                                        ${p.name}
-                                        ${!p.hasMelded ? '<span class="text-[11px] bg-rose-600 text-white px-2 py-0.5 rounded-full">มืดบอด (หักไพ่ในมือ x2)</span>' : ''}
-                                    </h3>
-                                    <p class="text-xs text-slate-300">${penaltyDetails}</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-xs text-emerald-200 block">คะแนนสุทธิ</span>
-                                <span class="text-2xl font-extrabold ${res.netScore >= 0 ? 'text-amber-300' : 'text-rose-400'}">
-                                    ${res.netScore > 0 ? `+${res.netScore}` : res.netScore} แต้ม
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-2 text-xs bg-black/30 p-2.5 rounded-xl border border-white/5">
-                            <div>แต้มเกิด/ฝากบนโต๊ะ: <strong class="text-emerald-300">+${res.meldPoints}</strong></div>
-                            <div>โบนัส/ค่าปรับระหว่างเกม: <strong class="text-sky-300">${p.penalties >= 0 ? `+${p.penalties}` : p.penalties}</strong></div>
-                            <div>หักไพ่ค้างในมือ: <strong class="text-rose-400">-${res.deadwoodPoints}</strong></div>
-                        </div>
-
-                        <div class="text-xs text-slate-300 flex items-center flex-wrap gap-1">
-                            <span>ไพ่ที่เหลือในมือ:</span> ${handCardsStr}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeEndGameModalOnly() {
-            const modal = document.getElementById('endGameModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        // Expose handlers to global scope for inline HTML onclick events
-        Object.assign(window, {
-            toggleSmartAssistant,
-            startSinglePlayerGame,
-            openLobbyModal,
-            closeLobbyModal,
-            createOnlineRoom,
-            joinOnlineRoom,
-            hostAddBotToRoom,
-            hostRemoveBotFromRoom,
-            hostStartOnlineGame,
-            leaveOnlineRoom,
-            switchToSinglePlayer,
-            copyRoomCode,
-            toggleRulesModal,
-            handleRestartClick,
-            handleDrawCard,
-            handlePickupFromDiscard,
-            handleMeldFromHand,
-            handleLayOff,
-            handleDiscardCard,
-            handleKnockGame,
-            sortPlayerHand,
-            clearSelections,
-            toggleHandCardSelection,
-            toggleDiscardSelection,
-            toggleMeldSelection,
-            applyPickupSuggestion,
-            applyHandMeldSuggestion,
-            applyLayoffSuggestion,
-            closeEndGameModalOnly
+    <!-- Melds on Table -->
+    <div>
+      <div class="text-xs text-slate-300 mb-1.5 flex items-center justify-between">
+        <span>ชุดไพ่เกิดบนโต๊ะ (คลิกเลือกไพ่ในมือแล้วคลิกที่ชุดบนโต๊ะเพื่อ "ฝากไพ่"):</span>
+        <span class="text-[11px] text-amber-300">2♣ และ Q♠ = 50 แต้ม | A = 15 | 10,J,Q,K = 10 | 2-9 = 5</span>
+      </div>
+      <div id="meldsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 min-h-[115px]"></div>
+    </div>
+
+    <!-- Local Player Hand & Controls -->
+    <div class="bg-slate-900/90 border border-slate-700 rounded-xl p-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold text-emerald-400">ไพ่ในมือของคุณ</span>
+          <span id="myMeldBadge" class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">ยังไม่ได้เกิด</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button id="btnDraw" onclick="handleDrawCard()" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition">
+            📥 จั่วไพ่
+          </button>
+          <button id="btnTakeDiscard" onclick="handleTakeFromDiscard()" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white transition">
+            ⚡ เก็บเกิดจากกอง
+          </button>
+          <button id="btnMeldHand" onclick="handleMeldFromHand()" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white transition">
+            ✨ เกิดไพ่ในมือ
+          </button>
+          <button id="btnDiscard" onclick="handleDiscardCard()" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white transition">
+            🗑️ ทิ้งไพ่ที่เลือก
+          </button>
+          <button id="btnKnock" onclick="handleKnockGame()" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-lg hidden animate-bounce">
+            🏆 น็อก (ทิ้งคว่ำ!)
+          </button>
+          <button onclick="clearSelection()" class="px-2.5 py-1.5 rounded-lg text-xs bg-slate-700 hover:bg-slate-600 text-slate-200">
+            ยกเลิกที่เลือก
+          </button>
+        </div>
+      </div>
+
+      <div id="myHandContainer" class="flex items-center gap-1.5 md:gap-2 py-3 px-2 overflow-x-auto min-h-[115px]"></div>
+    </div>
+  </main>
+
+  <!-- Multiplayer Room Modal -->
+  <div id="roomModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h2 class="text-lg font-bold text-amber-400">🌐 โหมดการเล่น & ห้องออนไลน์</h2>
+          <p class="text-xs text-slate-400">สร้างห้องส่งรหัสให้เพื่อน หรือเล่นคนเดียวกับบอท</p>
+        </div>
+        <button onclick="closeRoomModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div>
+        <label class="text-xs text-emerald-400 block mb-1">ชื่อที่ใช้แสดงในเกม (Display Name)</label>
+        <input id="playerNameInput" type="text" value="เซียนดัมมี่" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" />
+      </div>
+
+      <!-- Create / Join Section -->
+      <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-semibold text-sky-400">👥 เล่นออนไลน์กับเพื่อน (2 - 4 คน)</span>
+          <span id="netStatusText" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700">พร้อมใช้งาน</span>
+        </div>
+
+        <div class="flex gap-2">
+          <button onclick="createOnlineRoom()" class="flex-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2 px-3 rounded-lg text-sm transition">
+            + สร้างห้องใหม่ (Host)
+          </button>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <input id="joinCodeInput" type="text" maxlength="6" placeholder="กรอกรหัสห้อง 5 หลัก..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm uppercase text-center tracking-widest text-white" />
+          <button onclick="joinOnlineRoom()" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-sm transition">
+            เข้าห้อง
+          </button>
+        </div>
+
+        <!-- Lobby Info Box (Shown when room created/joined) -->
+        <div id="lobbyBox" class="hidden bg-slate-900 border border-amber-500/40 rounded-lg p-3 space-y-2 mt-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400">รหัสห้องของคุณ:</span>
+            <div class="flex items-center gap-2">
+              <span id="displayRoomCode" class="text-lg font-extrabold tracking-widest text-amber-400">-</span>
+              <button onclick="copyRoomCode()" class="text-xs bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-sky-300">คัดลอก</button>
+            </div>
+          </div>
+          <div class="text-xs text-slate-300">ผู้เล่นในห้อง (<span id="lobbyCount">1</span>/4):</div>
+          <ul id="lobbyPlayerList" class="text-xs space-y-1 text-emerald-300 pl-2"></ul>
+          <div id="hostLobbyControls" class="flex gap-2 pt-2">
+            <button onclick="addBotToLobby()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded text-slate-200 border border-slate-600">
+              + เพิ่มบอท AI
+            </button>
+            <button onclick="startMultiplayerGameFromHost()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs py-1.5 rounded">
+              ▶ เริ่มเกมเลย!
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single Player Bot Mode -->
+      <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+        <div>
+          <div class="text-sm font-semibold text-emerald-400">🤖 โหมดฝึกซ้อมกับบอท AI</div>
+          <div class="text-[11px] text-slate-400">เล่นคนเดียวกับบอท 3 คน เริ่มเล่นได้ทันที</div>
+        </div>
+        <button onclick="switchToBotMode()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg">
+          เล่นกับบอททันที
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Round Score Modal -->
+  <div id="summaryModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+      <h2 id="summaryTitle" class="text-xl font-bold text-amber-400 text-center">🏆 สรุปคะแนนจบตา</h2>
+      <div id="summaryReason" class="text-xs text-center text-slate-300"></div>
+      <div id="summaryTable" class="space-y-2 max-h-72 overflow-y-auto"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeSummaryModal()" class="px-4 py-2 rounded-lg text-xs bg-slate-700 text-white">ดูโต๊ะไพ่</button>
+        <button onclick="requestNewGame(); closeSummaryModal();" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950">เริ่มตาต่อไป</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastBox" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <script>
+    /**************************************************************
+     * 1. CONSTANTS & THAI DUMMY CARD ENGINE
+     **************************************************************/
+    const SUITS = ['♣', '♦', '♥', '♠'];
+    const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const RANK_VAL = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14 };
+
+    let assistantEnabled = true;
+    let selectedHandIds = new Set();
+    let selectedDiscardId = null;
+
+    // Multiplayer State
+    let isOnlineMode = false;
+    let isHost = true;
+    let myPlayerIndex = 0;
+    let roomCode = null;
+    let peer = null;
+    let hostConnections = []; // used by Host
+    let clientConn = null;    // used by Client
+    let lobbyPlayers = [];
+
+    // Game State (Shared across P2P)
+    let G = {
+      players: [],
+      deck: [],
+      discardPile: [],
+      melds: [],
+      turnIndex: 0,
+      phase: 'DRAW', // 'DRAW' | 'ACTION' | 'ENDED'
+      logs: [],
+      winnerInfo: null
+    };
+
+    function getCardPoint(card) {
+      if ((card.rank === '2' && card.suit === '♣') || (card.rank === 'Q' && card.suit === '♠')) return 50;
+      if (card.rank === 'A') return 15;
+      if (['10', 'J', 'Q', 'K'].includes(card.rank)) return 10;
+      return 5;
+    }
+
+    function isSpeto(card) {
+      return (card.rank === '2' && card.suit === '♣') || (card.rank === 'Q' && card.suit === '♠');
+    }
+
+    function sortCards(cards) {
+      const suitOrder = { '♣': 1, '♦': 2, '♥': 3, '♠': 4 };
+      return [...cards].sort((a, b) => {
+        if (RANK_VAL[a.rank] !== RANK_VAL[b.rank]) return RANK_VAL[a.rank] - RANK_VAL[b.rank];
+        return suitOrder[a.suit] - suitOrder[b.suit];
+      });
+    }
+
+    function checkValidMeld(cards) {
+      if (!cards || cards.length < 3) return null;
+      // Check Group (ตอง/สี่ใบ)
+      const sameRank = cards.every(c => c.rank === cards[0].rank);
+      const uniqueSuits = new Set(cards.map(c => c.suit)).size === cards.length;
+      if (sameRank && uniqueSuits && cards.length <= 4) {
+        return { type: 'GROUP', cards: sortCards(cards) };
+      }
+      // Check Run (เรียงดอกเดียวกัน)
+      const sameSuit = cards.every(c => c.suit === cards[0].suit);
+      if (sameSuit) {
+        const sorted = [...cards].sort((a, b) => RANK_VAL[a.rank] - RANK_VAL[b.rank]);
+        let isConsecutive = true;
+        for (let i = 0; i < sorted.length - 1; i++) {
+          if (RANK_VAL[sorted[i+1].rank] - RANK_VAL[sorted[i].rank] !== 1) {
+            isConsecutive = false;
+            break;
+          }
+        }
+        if (isConsecutive) return { type: 'RUN', cards: sorted };
+      }
+      return null;
+    }
+
+    function canCardLayOffOnMeld(card, meld) {
+      const testCards = [...meld.cards, card];
+      return checkValidMeld(testCards) !== null;
+    }
+
+    function createDeck() {
+      const deck = [];
+      let idCounter = 1;
+      for (const s of SUITS) {
+        for (const r of RANKS) {
+          deck.push({ id: `c_${idCounter++}`, suit: s, rank: r, isHead: false });
+        }
+      }
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    /**************************************************************
+     * 2. INITIALIZE GAME (SINGLE & MULTIPLAYER)
+     **************************************************************/
+    function initSinglePlayerGame() {
+      isOnlineMode = false;
+      isHost = true;
+      myPlayerIndex = 0;
+      const myName = document.getElementById('playerNameInput')?.value.trim() || 'คุณ';
+      const playerConfigs = [
+        { name: myName, isBot: false },
+        { name: 'บอทสมชาย', isBot: true },
+        { name: 'บอทสายฟ้า', isBot: true },
+        { name: 'บอทเซียนใต้', isBot: true }
+      ];
+      setupNewRound(playerConfigs);
+    }
+
+    function setupNewRound(playerConfigs) {
+      const deck = createDeck();
+      const handSize = playerConfigs.length === 2 ? 11 : (playerConfigs.length === 3 ? 9 : 7);
+
+      const players = playerConfigs.map((cfg, idx) => ({
+        index: idx,
+        name: cfg.name,
+        isBot: !!cfg.isBot,
+        peerId: cfg.peerId || null,
+        hand: sortCards(deck.splice(0, handSize)),
+        hasMelded: false,
+        actionScore: 0,
+        penalties: 0
+      }));
+
+      // Open 1st Head Card (ไพ่หัว)
+      const firstDiscard = deck.shift();
+      firstDiscard.isHead = true;
+      firstDiscard.discardedBy = -1;
+
+      G = {
+        players,
+        deck,
+        discardPile: [firstDiscard],
+        melds: [],
+        turnIndex: 0,
+        phase: 'DRAW',
+        logs: [`เปิดไพ่หัวคือ ${firstDiscard.rank}${firstDiscard.suit} (+50 แต้ม)`],
+        winnerInfo: null
+      };
+
+      selectedHandIds.clear();
+      selectedDiscardId = null;
+      syncAndRender();
+    }
+
+    function requestNewGame() {
+      if (isOnlineMode && !isHost) {
+        showToast('เฉพาะหัวหน้าห้องเท่านั้นที่กดเริ่มตาใหม่ได้', 'warn');
+        return;
+      }
+      const configs = G.players.map(p => ({ name: p.name, isBot: p.isBot, peerId: p.peerId }));
+      setupNewRound(configs);
+    }
+
+    /**************************************************************
+     * 3. SMART ASSISTANT (ตัวช่วยวิเคราะห์ไพ่)
+     **************************************************************/
+    function analyzeCurrentHand(player) {
+      const hints = {
+        handMelds: [],
+        discardPickups: [],
+        layoffs: [],
+        dangerIds: new Set(),
+        meldCardIds: new Set(),
+        layoffCardIds: new Set(),
+        pickupDiscardIds: new Set()
+      };
+      if (!player) return hints;
+      const hand = player.hand;
+
+      // 1. Check Melds in Hand (combinations of 3)
+      for (let i = 0; i < hand.length; i++) {
+        for (let j = i + 1; j < hand.length; j++) {
+          for (let k = j + 1; k < hand.length; k++) {
+            const combo = [hand[i], hand[j], hand[k]];
+            const res = checkValidMeld(combo);
+            if (res) {
+              hints.handMelds.push(res.cards);
+              res.cards.forEach(c => hints.meldCardIds.add(c.id));
+            }
+          }
+        }
+      }
+
+      // 2. Check Discard Pile Pickups (1 in discard + 2 in hand)
+      G.discardPile.forEach((dCard, dIdx) => {
+        for (let i = 0; i < hand.length; i++) {
+          for (let j = i + 1; j < hand.length; j++) {
+            const combo = [dCard, hand[i], hand[j]];
+            const res = checkValidMeld(combo);
+            if (res) {
+              hints.discardPickups.push({
+                discardCard: dCard,
+                discardIndex: dIdx,
+                handCards: [hand[i], hand[j]]
+              });
+              hints.pickupDiscardIds.add(dCard.id);
+              hints.meldCardIds.add(hand[i].id);
+              hints.meldCardIds.add(hand[j].id);
+            }
+          }
+        }
+      });
+
+      // 3. Check Layoffs (ฝากไพ่) - Only if player has melded
+      if (player.hasMelded) {
+        hand.forEach(card => {
+          G.melds.forEach((m, mIdx) => {
+            if (canCardLayOffOnMeld(card, m)) {
+              hints.layoffs.push({ card, meldIndex: mIdx });
+              hints.layoffCardIds.add(card.id);
+            }
+          });
+        });
+      }
+
+      // 4. Danger Cards (ไพ่เสี่ยงปี้หัว หรือ ทิ้งไพ่ฝาก)
+      const headCard = G.discardPile.find(c => c.isHead);
+      hand.forEach(card => {
+        // Check if it can lay off on any existing meld
+        if (G.melds.some(m => canCardLayOffOnMeld(card, m))) {
+          hints.dangerIds.add(card.id);
+        }
+        // Check if it matches Head card rank or adjacent same suit
+        if (headCard) {
+          if (card.rank === headCard.rank) hints.dangerIds.add(card.id);
+          if (card.suit === headCard.suit && Math.abs(RANK_VAL[card.rank] - RANK_VAL[headCard.rank]) <= 2) {
+            hints.dangerIds.add(card.id);
+          }
+        }
+      });
+
+      return hints;
+    }
+
+    function toggleAssistant() {
+      assistantEnabled = !assistantEnabled;
+      const btn = document.getElementById('btnToggleHint');
+      btn.textContent = assistantEnabled ? '💡 ตัวช่วยแนะนำ: เปิด' : '💡 ตัวช่วยแนะนำ: ปิด';
+      btn.className = assistantEnabled
+        ? 'text-xs md:text-sm px-3 py-1.5 rounded-lg font-medium bg-amber-500/20 text-amber-300 border border-amber-400/50'
+        : 'text-xs md:text-sm px-3 py-1.5 rounded-lg font-medium bg-slate-800 text-slate-400 border border-slate-700';
+      document.getElementById('assistantPanel').classList.toggle('hidden', !assistantEnabled);
+      renderAll();
+    }
+
+    function quickSelectPickup(discardId, h1Id, h2Id) {
+      selectedDiscardId = discardId;
+      selectedHandIds = new Set([h1Id, h2Id]);
+      renderAll();
+    }
+
+    function quickSelectHandMeld(idsStr) {
+      selectedDiscardId = null;
+      selectedHandIds = new Set(idsStr.split(','));
+      renderAll();
+    }
+
+    /**************************************************************
+     * 4. CORE GAME ACTIONS (HOST AUTHORITATIVE)
+     **************************************************************/
+    function sendOrExecuteAction(actionObj) {
+      if (isOnlineMode && !isHost) {
+        if (clientConn && clientConn.open) {
+          clientConn.send({ type: 'PLAYER_ACTION', action: actionObj });
+        } else {
+          showToast('การเชื่อมต่อกับหัวหน้าห้องขัดข้อง', 'error');
+        }
+        return;
+      }
+      processGameAction(actionObj);
+    }
+
+    function processGameAction(act) {
+      const p = G.players[act.playerIndex];
+      if (!p || G.turnIndex !== act.playerIndex || G.phase === 'ENDED') return;
+
+      if (act.kind === 'DRAW') {
+        if (G.phase !== 'DRAW') return;
+        if (G.deck.length === 0) {
+          finishRound('DECK_EMPTY', null);
+          return;
+        }
+        const drawn = G.deck.shift();
+        p.hand.push(drawn);
+        p.hand = sortCards(p.hand);
+        G.phase = 'ACTION';
+        showToast(`${p.name} จั่วไพ่ 1 ใบ`);
+      }
+
+      else if (act.kind === 'TAKE_DISCARD') {
+        if (G.phase !== 'DRAW') return;
+        const dIndex = G.discardPile.findIndex(c => c.id === act.discardId);
+        if (dIndex === -1) return;
+        const targetDiscard = G.discardPile[dIndex];
+        const handCards = p.hand.filter(c => act.handIds.includes(c.id));
+        const meldCheck = checkValidMeld([targetDiscard, ...handCards]);
+
+        if (!meldCheck) {
+          showToast('ไพ่ที่เลือกไม่เป็นชุดตองหรือเรียงสีเดียวกัน', 'error');
+          return;
+        }
+        // Must leave at least 1 card in hand to discard/knock
+        const pickedUpAbove = G.discardPile.slice(dIndex + 1);
+        const remainingCount = p.hand.length - handCards.length + pickedUpAbove.length;
+        if (remainingCount < 1) {
+          showToast('ต้องเหลือไพ่ในมืออย่างน้อย 1 ใบหลังเกิดเพื่อทิ้งจบเทิร์น', 'error');
+          return;
+        }
+
+        // Penalty Check: ทิ้งไพ่โง่ / ปี้หัว
+        if (targetDiscard.discardedBy !== undefined && targetDiscard.discardedBy >= 0 && targetDiscard.discardedBy !== p.index) {
+          const culprit = G.players[targetDiscard.discardedBy];
+          culprit.penalties -= 50;
+          showToast(`⚠️ ${culprit.name} โดนปรับ -50 แต้ม (ทิ้งไพ่ให้ ${p.name} เก็บเกิด!)`, 'warn');
+        }
+
+        // Remove from discard pile from dIndex to end
+        G.discardPile.splice(dIndex);
+        // Remove used hand cards and add pickedUpAbove
+        p.hand = p.hand.filter(c => !act.handIds.includes(c.id));
+        p.hand.push(...pickedUpAbove);
+        p.hand = sortCards(p.hand);
+
+        p.hasMelded = true;
+        G.melds.push({
+          ownerIndex: p.index,
+          ownerName: p.name,
+          type: meldCheck.type,
+          cards: meldCheck.cards
         });
 
-        window.onload = async function () {
-            await initFirebase();
-            startSinglePlayerGame();
+        G.phase = 'ACTION';
+        showToast(`⚡ ${p.name} เก็บเกิดจากกองกลางสำเร็จ!`);
+      }
+
+      else if (act.kind === 'MELD_HAND') {
+        if (G.phase !== 'ACTION') return;
+        const chosen = p.hand.filter(c => act.handIds.includes(c.id));
+        const meldCheck = checkValidMeld(chosen);
+        if (!meldCheck) {
+          showToast('ไพ่ที่เลือกไม่ถูกต้องตามกติกาตองหรือเรียง', 'error');
+          return;
+        }
+        if (p.hand.length - chosen.length < 1) {
+          showToast('ต้องเหลือไพ่ในมืออย่างน้อย 1 ใบเพื่อทิ้งหรือน็อก', 'error');
+          return;
+        }
+        p.hand = p.hand.filter(c => !act.handIds.includes(c.id));
+        p.hasMelded = true;
+        G.melds.push({
+          ownerIndex: p.index,
+          ownerName: p.name,
+          type: meldCheck.type,
+          cards: meldCheck.cards
+        });
+        showToast(`✨ ${p.name} ลงชุดเกิดสำเร็จ!`);
+      }
+
+      else if (act.kind === 'LAYOFF') {
+        if (G.phase !== 'ACTION' || !p.hasMelded) return;
+        if (p.hand.length <= 1) {
+          showToast('เหลือไพ่ใบสุดท้ายแล้ว กดปุ่ม "น็อก (ทิ้งคว่ำ)" ได้เลย!', 'warn');
+          return;
+        }
+        const card = p.hand.find(c => c.id === act.cardId);
+        const meld = G.melds[act.meldIndex];
+        if (!card || !meld) return;
+        const checked = checkValidMeld([...meld.cards, card]);
+        if (!checked) {
+          showToast('ไพ่ใบนี้เสียบฝากชุดนี้ไม่ได้', 'error');
+          return;
+        }
+        p.hand = p.hand.filter(c => c.id !== card.id);
+        card.laidOffBy = p.index;
+        meld.cards = checked.cards;
+        showToast(`📌 ${p.name} ฝากไพ่ ${card.rank}${card.suit} สำเร็จ!`);
+      }
+
+      else if (act.kind === 'DISCARD') {
+        if (G.phase !== 'ACTION') return;
+        const card = p.hand.find(c => c.id === act.cardId);
+        if (!card) return;
+
+        // Check if discarding a card that can be laid off on table (ทิ้งไพ่ฝาก -50)
+        if (G.melds.some(m => canCardLayOffOnMeld(card, m))) {
+          p.penalties -= 50;
+          showToast(`⚠️ ${p.name} ทิ้งไพ่ฝาก (${card.rank}${card.suit}) โดนหัก -50 แต้ม!`, 'error');
+        }
+
+        p.hand = p.hand.filter(c => c.id !== card.id);
+        card.discardedBy = p.index;
+        G.discardPile.push(card);
+
+        if (G.deck.length === 0) {
+          finishRound('DECK_EMPTY', null);
+          return;
+        }
+
+        // Advance turn
+        G.turnIndex = (G.turnIndex + 1) % G.players.length;
+        G.phase = 'DRAW';
+      }
+
+      else if (act.kind === 'KNOCK') {
+        if (G.phase !== 'ACTION' || !p.hasMelded || p.hand.length !== 1) return;
+        const knockCard = p.hand.pop();
+        p.actionScore += 50; // Knock Bonus
+        finishRound('KNOCK', { winnerIndex: p.index, winnerName: p.name, knockCard });
+        return;
+      }
+
+      selectedHandIds.clear();
+      selectedDiscardId = null;
+      syncAndRender();
+      checkBotTurn();
+    }
+
+    function finishRound(reason, knockInfo) {
+      G.phase = 'ENDED';
+      // Calculate final scores
+      const results = G.players.map(p => {
+        // Points from cards this player melded or laid off
+        let meldPts = 0;
+        G.melds.forEach(m => {
+          m.cards.forEach(c => {
+            const owner = c.laidOffBy !== undefined ? c.laidOffBy : m.ownerIndex;
+            if (owner === p.index) {
+              meldPts += getCardPoint(c);
+              if (c.isHead) meldPts += 50; // โบนัสไพ่หัว
+            }
+          });
+        });
+
+        // Subtract points left in hand
+        let handMinus = 0;
+        p.hand.forEach(c => {
+          handMinus -= getCardPoint(c);
+        });
+
+        // โง่ (Stupid/Dark) penalty if never melded at all when someone knocks
+        let extraPenalty = p.penalties;
+        if (reason === 'KNOCK' && !p.hasMelded && p.index !== knockInfo.winnerIndex) {
+          extraPenalty -= 50; // น็อกมืด/ตีโง่
+        }
+
+        const total = meldPts + p.actionScore + handMinus + extraPenalty;
+        return {
+          name: p.name,
+          meldPts,
+          handMinus,
+          bonusAndPenalty: p.actionScore + extraPenalty,
+          total
         };
-    </script>
+      });
+
+      G.winnerInfo = { reason, knockInfo, results };
+      syncAndRender();
+    }
+
+    /**************************************************************
+     * 5. BOT AI LOGIC
+     **************************************************************/
+    function checkBotTurn() {
+      if (isOnlineMode && !isHost) return;
+      if (G.phase === 'ENDED') return;
+      const current = G.players[G.turnIndex];
+      if (!current || !current.isBot) return;
+
+      setTimeout(() => {
+        if (G.phase === 'ENDED' || G.turnIndex !== current.index) return;
+        runBotStep(current);
+      }, 850);
+    }
+
+    function runBotStep(bot) {
+      const hints = analyzeCurrentHand(bot);
+
+      if (G.phase === 'DRAW') {
+        // Check if bot can pick up from discard pile
+        if (hints.discardPickups.length > 0) {
+          const pick = hints.discardPickups[0];
+          const pickedAbove = G.discardPile.slice(pick.discardIndex + 1);
+          if (bot.hand.length - 2 + pickedAbove.length >= 1) {
+            processGameAction({
+              playerIndex: bot.index,
+              kind: 'TAKE_DISCARD',
+              discardId: pick.discardCard.id,
+              handIds: pick.handCards.map(c => c.id)
+            });
+            return;
+          }
+        }
+        processGameAction({ playerIndex: bot.index, kind: 'DRAW' });
+        return;
+      }
+
+      if (G.phase === 'ACTION') {
+        // 1. Meld from hand if possible and leaves >= 1 card
+        if (hints.handMelds.length > 0 && bot.hand.length - hints.handMelds[0].length >= 1) {
+          processGameAction({
+            playerIndex: bot.index,
+            kind: 'MELD_HAND',
+            handIds: hints.handMelds[0].map(c => c.id)
+          });
+          return;
+        }
+
+        // 2. Layoff if possible and leaves >= 1 card
+        if (bot.hasMelded && hints.layoffs.length > 0 && bot.hand.length > 1) {
+          const lo = hints.layoffs[0];
+          processGameAction({
+            playerIndex: bot.index,
+            kind: 'LAYOFF',
+            cardId: lo.card.id,
+            meldIndex: lo.meldIndex
+          });
+          return;
+        }
+
+        // 3. Knock if 1 card left and hasMelded
+        if (bot.hasMelded && bot.hand.length === 1) {
+          processGameAction({ playerIndex: bot.index, kind: 'KNOCK' });
+          return;
+        }
+
+        // 4. Discard safest lowest-point card
+        const safeCards = bot.hand.filter(c => !hints.dangerIds.has(c.id));
+        const pool = safeCards.length > 0 ? safeCards : bot.hand;
+        const chosenDiscard = pool[0];
+        processGameAction({
+          playerIndex: bot.index,
+          kind: 'DISCARD',
+          cardId: chosenDiscard.id
+        });
+      }
+    }
+
+    /**************************************************************
+     * 6. USER BUTTON HANDLERS
+     **************************************************************/
+    function handleDrawCard() {
+      if (G.turnIndex !== myPlayerIndex || G.phase !== 'DRAW') return;
+      sendOrExecuteAction({ playerIndex: myPlayerIndex, kind: 'DRAW' });
+    }
+
+    function handleTakeFromDiscard() {
+      if (G.turnIndex !== myPlayerIndex || G.phase !== 'DRAW') return;
+      if (!selectedDiscardId || selectedHandIds.size < 2) {
+        showToast('กรุณาคลิกเลือกไพ่ในกองทิ้ง 1 ใบ และไพ่ในมืออย่างน้อย 2 ใบก่อน', 'warn');
+        return;
+      }
+      sendOrExecuteAction({
+        playerIndex: myPlayerIndex,
+        kind: 'TAKE_DISCARD',
+        discardId: selectedDiscardId,
+        handIds: Array.from(selectedHandIds)
+      });
+    }
+
+    function handleMeldFromHand() {
+      if (G.turnIndex !== myPlayerIndex || G.phase !== 'ACTION') return;
+      if (selectedHandIds.size < 3) {
+        showToast('กรุณาคลิกเลือกไพ่ในมืออย่างน้อย 3 ใบเพื่อเกิด', 'warn');
+        return;
+      }
+      sendOrExecuteAction({
+        playerIndex: myPlayerIndex,
+        kind: 'MELD_HAND',
+        handIds: Array.from(selectedHandIds)
+      });
+    }
+
+    function handleLayoffOnMeld(meldIndex) {
+      if (G.turnIndex !== myPlayerIndex || G.phase !== 'ACTION') return;
+      if (selectedHandIds.size !== 1) {
+        showToast('คลิกเลือกไพ่ในมือทีละ 1 ใบ แล้วคลิกที่ชุดไพ่บนโต๊ะเพื่อฝาก', 'warn');
+        return;
+      }
+      const cardId = Array.from(selectedHandIds)[0];
+      sendOrExecuteAction({
+        playerIndex: myPlayerIndex,
+        kind: 'LAYOFF',
+        cardId,
+        meldIndex
+      });
+    }
+
+    function handleDiscardCard() {
+      if (G.turnIndex !== myPlayerIndex || G.phase !== 'ACTION') return;
+      if (selectedHandIds.size !== 1) {
+        showToast('กรุณาคลิกเลือกไพ่ในมือเพียง 1 ใบเพื่อทิ้งจบเทิร์น', 'warn');
+        return;
+      }
+      const cardId = Array.from(selectedHandIds)[0];
+      sendOrExecuteAction({
+        playerIndex: myPlayerIndex,
+        kind: 'DISCARD',
+        cardId
+      });
+    }
+
+    function handleKnockGame() {
+      if (G.turnIndex !== myPlayerIndex || G.phase !== 'ACTION') return;
+      sendOrExecuteAction({ playerIndex: myPlayerIndex, kind: 'KNOCK' });
+    }
+
+    function clearSelection() {
+      selectedHandIds.clear();
+      selectedDiscardId = null;
+      renderAll();
+    }
+
+    /**************************************************************
+     * 7. ONLINE MULTIPLAYER (PEERJS INSTANT ROOM)
+     **************************************************************/
+    function openRoomModal() {
+      document.getElementById('roomModal').classList.remove('hidden');
+    }
+    function closeRoomModal() {
+      document.getElementById('roomModal').classList.add('hidden');
+    }
+    function switchToBotMode() {
+      closeRoomModal();
+      initSinglePlayerGame();
+      showToast('เริ่มโหมดฝึกซ้อมกับบอท AI เรียบร้อย');
+    }
+
+    function generateRoomCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function createOnlineRoom() {
+      const myName = document.getElementById('playerNameInput').value.trim() || 'หัวหน้าห้อง';
+      roomCode = generateRoomCode();
+      isOnlineMode = true;
+      isHost = true;
+      myPlayerIndex = 0;
+
+      lobbyPlayers = [{ name: myName, isBot: false, peerId: 'HOST' }];
+      hostConnections = [];
+
+      // Show room code immediately so user never gets stuck!
+      document.getElementById('lobbyBox').classList.remove('hidden');
+      document.getElementById('hostLobbyControls').classList.remove('hidden');
+      document.getElementById('displayRoomCode').textContent = roomCode;
+      document.getElementById('netStatusText').textContent = 'กำลังเปิดห้องออนไลน์...';
+      updateLobbyUI();
+
+      try {
+        if (peer) peer.destroy();
+        peer = new Peer('THDUMMY_' + roomCode);
+
+        peer.on('open', () => {
+          document.getElementById('netStatusText').textContent = 'ออนไลน์พร้อมรับเพื่อน';
+          document.getElementById('roomStatusBadge').textContent = `ห้องออนไลน์: ${roomCode}`;
+          showToast(`สร้างห้องสำเร็จ! รหัสห้องคือ ${roomCode}`);
+        });
+
+        peer.on('connection', (conn) => {
+          hostConnections.push(conn);
+          conn.on('data', (data) => {
+            if (data.type === 'JOIN_REQUEST') {
+              if (lobbyPlayers.length >= 4) return;
+              const newIdx = lobbyPlayers.length;
+              lobbyPlayers.push({ name: data.name, isBot: false, peerId: conn.peer });
+              conn.send({ type: 'JOIN_ACCEPTED', playerIndex: newIdx, roomCode, lobbyPlayers });
+              broadcastLobby();
+              updateLobbyUI();
+              showToast(`${data.name} เข้าร่วมห้องแล้ว!`);
+            } else if (data.type === 'PLAYER_ACTION') {
+              processGameAction(data.action);
+            }
+          });
+        });
+
+        peer.on('error', (err) => {
+          console.warn('Peer error:', err);
+          document.getElementById('netStatusText').textContent = 'สร้างห้องสำเร็จ (โหมดสำรอง)';
+        });
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    function joinOnlineRoom() {
+      const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+      const myName = document.getElementById('playerNameInput').value.trim() || 'เพื่อนเซียนไพ่';
+      if (code.length < 4) {
+        showToast('กรุณากรอกรหัสห้อง 5 หลักให้ครบถ้วน', 'warn');
+        return;
+      }
+
+      document.getElementById('netStatusText').textContent = 'กำลังค้นหาห้อง...';
+      try {
+        if (peer) peer.destroy();
+        peer = new Peer();
+
+        peer.on('open', () => {
+          clientConn = peer.connect('THDUMMY_' + code, { reliable: true });
+          clientConn.on('open', () => {
+            clientConn.send({ type: 'JOIN_REQUEST', name: myName });
+          });
+
+          clientConn.on('data', (data) => {
+            if (data.type === 'JOIN_ACCEPTED') {
+              isOnlineMode = true;
+              isHost = false;
+              roomCode = data.roomCode;
+              myPlayerIndex = data.playerIndex;
+              lobbyPlayers = data.lobbyPlayers;
+              document.getElementById('lobbyBox').classList.remove('hidden');
+              document.getElementById('hostLobbyControls').classList.add('hidden');
+              document.getElementById('displayRoomCode').textContent = roomCode;
+              document.getElementById('netStatusText').textContent = 'เข้าห้องสำเร็จ! รอหัวหน้าห้องกดเริ่มเกม';
+              document.getElementById('roomStatusBadge').textContent = `ห้องออนไลน์: ${roomCode}`;
+              updateLobbyUI();
+              showToast(`เข้าร่วมห้อง ${roomCode} สำเร็จ!`);
+            } else if (data.type === 'LOBBY_UPDATE') {
+              lobbyPlayers = data.lobbyPlayers;
+              updateLobbyUI();
+            } else if (data.type === 'STATE_SYNC') {
+              G = data.state;
+              closeRoomModal();
+              renderAll();
+            }
+          });
+
+          clientConn.on('error', () => {
+            showToast('เชื่อมต่อห้องไม่สำเร็จ กรุณาตรวจสอบรหัสห้อง', 'error');
+          });
+        });
+      } catch (e) {
+        showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ห้องได้', 'error');
+      }
+    }
+
+    function addBotToLobby() {
+      if (!isHost || lobbyPlayers.length >= 4) return;
+      const botNames = ['บอทสมชาย', 'บอทสายฟ้า', 'บอทเซียนใต้'];
+      const bName = botNames[lobbyPlayers.length - 1] || `บอท #${lobbyPlayers.length}`;
+      lobbyPlayers.push({ name: bName, isBot: true });
+      broadcastLobby();
+      updateLobbyUI();
+    }
+
+    function broadcastLobby() {
+      hostConnections.forEach(c => {
+        if (c.open) c.send({ type: 'LOBBY_UPDATE', lobbyPlayers });
+      });
+    }
+
+    function updateLobbyUI() {
+      document.getElementById('lobbyCount').textContent = lobbyPlayers.length;
+      const ul = document.getElementById('lobbyPlayerList');
+      ul.innerHTML = lobbyPlayers.map((p, i) => `<li>${i + 1}. ${p.name} ${p.isBot ? '(บอท AI)' : ''}</li>`).join('');
+    }
+
+    function startMultiplayerGameFromHost() {
+      if (!isHost) return;
+      if (lobbyPlayers.length < 2) {
+        // Auto-add 1 bot if alone
+        addBotToLobby();
+      }
+      closeRoomModal();
+      setupNewRound(lobbyPlayers);
+    }
+
+    function copyRoomCode() {
+      if (!roomCode) return;
+      navigator.clipboard.writeText(roomCode);
+      showToast(`คัดลอกรหัสห้อง ${roomCode} แล้ว ส่งให้เพื่อนได้เลย!`);
+    }
+
+    function syncAndRender() {
+      if (isOnlineMode && isHost) {
+        hostConnections.forEach(c => {
+          if (c.open) c.send({ type: 'STATE_SYNC', state: G });
+        });
+      }
+      renderAll();
+    }
+
+    /**************************************************************
+     * 8. UI RENDERING
+     **************************************************************/
+    function renderCardHTML(card, opts = {}) {
+      const isRed = card.suit === '♥' || card.suit === '♦';
+      const suitClass = isRed ? 'suit-red' : 'suit-black';
+      const spetoClass = isSpeto(card) ? 'speto' : '';
+      const selectedClass = opts.selected ? 'selected' : '';
+      const hintClass = opts.hintType === 'meld' ? 'hint-meld' : (opts.hintType === 'layoff' ? 'hint-layoff' : (opts.hintType === 'danger' ? 'hint-danger' : ''));
+
+      let topBadge = '';
+      if (card.isHead) {
+        topBadge = `<span class="badge-top bg-amber-400 text-slate-950">👑 หัว +50</span>`;
+      } else if (opts.topLabel) {
+        topBadge = `<span class="badge-top ${opts.topBadgeColor || 'bg-emerald-500 text-slate-950'}">${opts.topLabel}</span>`;
+      }
+
+      let bottomBadge = '';
+      if (opts.bottomLabel) {
+        bottomBadge = `<span class="badge-bottom ${opts.bottomBadgeColor || 'bg-rose-600 text-white'}">${opts.bottomLabel}</span>`;
+      }
+
+      return `
+        <div onclick="${opts.onClick || ''}" class="card ${suitClass} ${spetoClass} ${selectedClass} ${hintClass}">
+          ${topBadge}
+          <div class="text-xs md:text-sm font-bold leading-none">${card.rank}<span class="text-xs">${card.suit}</span></div>
+          <div class="text-xl md:text-2xl text-center leading-none">${card.suit}</div>
+          <div class="text-[10px] text-right font-semibold opacity-75">${getCardPoint(card)}pt</div>
+          ${bottomBadge}
+        </div>
+      `;
+    }
+
+    function renderAll() {
+      const me = G.players[myPlayerIndex];
+      const isMyTurn = G.turnIndex === myPlayerIndex && G.phase !== 'ENDED';
+      const hints = (assistantEnabled && me) ? analyzeCurrentHand(me) : null;
+
+      // 1. Players Bar
+      const playersBar = document.getElementById('playersBar');
+      playersBar.innerHTML = G.players.map((p, idx) => {
+        const active = idx === G.turnIndex && G.phase !== 'ENDED';
+        return `
+          <div class="rounded-xl px-3 py-2 border flex items-center justify-between ${active ? 'bg-amber-500/20 border-amber-400 shadow-md' : 'bg-slate-900/75 border-slate-800'}">
+            <div>
+              <div class="text-xs md:text-sm font-bold flex items-center gap-1.5">
+                <span>${idx === myPlayerIndex ? '⭐ ' : ''}${p.name}</span>
+                ${active ? '<span class="text-[10px] bg-amber-400 text-slate-950 px-1.5 rounded font-extrabold">ถึงตาเดิน</span>' : ''}
+              </div>
+              <div class="text-[11px] text-slate-400">
+                ไพ่ในมือ: <b class="text-white">${p.hand.length}</b> ใบ | ${p.hasMelded ? '<span class="text-emerald-400">เกิดแล้ว</span>' : 'ยังไม่เกิด'}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-slate-400">โทษ/พิเศษ</div>
+              <div class="text-sm font-bold ${p.penalties < 0 ? 'text-rose-400' : 'text-emerald-400'}">${p.actionScore + p.penalties}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 2. Deck & Turn Indicator
+      document.getElementById('deckCount').textContent = G.deck.length;
+      const currentTurnPlayer = G.players[G.turnIndex];
+      document.getElementById('turnIndicator').textContent = G.phase === 'ENDED'
+        ? 'จบตานี้แล้ว'
+        : (isMyTurn ? '🟢 ตาของคุณ! เลือกแอ็กชันได้เลย' : `⏳ กำลังรอ ${currentTurnPlayer?.name || ''} เล่น...`);
+      document.getElementById('subTurnStatus').textContent = isMyTurn
+        ? (G.phase === 'DRAW' ? 'ขั้นตอนที่ 1: กด "จั่วไพ่" หรือคลิกไพ่ในกองทิ้งคู่กับไพ่ในมือเพื่อ "เก็บเกิด"' : 'ขั้นตอนที่ 2: เกิดไพ่ / ฝากไพ่ หรือเลือกไพ่ 1 ใบเพื่อกด "ทิ้งไพ่"')
+        : 'ดูไพ่บนโต๊ะและวางแผนตาถัดไป';
+
+      // 3. Assistant Panel
+      if (assistantEnabled && me && hints) {
+        const msgParts = [];
+        const quickBtns = [];
+
+        if (hints.discardPickups.length > 0 && G.phase === 'DRAW') {
+          const pk = hints.discardPickups[0];
+          msgParts.push(`เก็บเกิดจากกองได้ (${pk.discardCard.rank}${pk.discardCard.suit})`);
+          quickBtns.push(`<button onclick="quickSelectPickup('${pk.discardCard.id}','${pk.handCards[0].id}','${pk.handCards[1].id}')" class="text-xs bg-emerald-500 text-slate-950 font-bold px-2.5 py-1 rounded">เลือกชุดเก็บเกิด ${pk.discardCard.rank}${pk.discardCard.suit}</button>`);
+        }
+        if (hints.handMelds.length > 0) {
+          const m = hints.handMelds[0];
+          const ids = m.map(c => c.id).join(',');
+          const label = m.map(c => c.rank + c.suit).join(' ');
+          msgParts.push(`มีชุดเกิดในมือ (${label})`);
+          quickBtns.push(`<button onclick="quickSelectHandMeld('${ids}')" class="text-xs bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded">เลือกชุด ${label}</button>`);
+        }
+        if (hints.layoffs.length > 0) {
+          const lo = hints.layoffs[0];
+          msgParts.push(`มีไพ่ฝากได้ (${lo.card.rank}${lo.card.suit})`);
+        }
+        document.getElementById('assistantSummary').textContent = msgParts.length > 0
+          ? msgParts.join(' | ')
+          : 'ยังไม่มีชุดเกิดหรือฝากในตอนนี้ แนะนำจั่วไพ่หรือทิ้งไพ่ใบที่ไม่เสี่ยง';
+        document.getElementById('assistantQuickButtons').innerHTML = quickBtns.join('');
+      }
+
+      // 4. Discard Pile
+      document.getElementById('discardCountLabel').textContent = `${G.discardPile.length} ใบ`;
+      const discardContainer = document.getElementById('discardContainer');
+      discardContainer.innerHTML = G.discardPile.map(c => {
+        const isSel = selectedDiscardId === c.id;
+        const canPick = hints && hints.pickupDiscardIds.has(c.id);
+        return renderCardHTML(c, {
+          selected: isSel,
+          hintType: canPick ? 'meld' : null,
+          topLabel: canPick ? '💡 เก็บเกิดได้' : null,
+          onClick: `toggleSelectDiscard('${c.id}')`
+        });
+      }).join('');
+
+      // 5. Melds on Table
+      const meldsContainer = document.getElementById('meldsContainer');
+      if (G.melds.length === 0) {
+        meldsContainer.innerHTML = `<div class="col-span-full text-center text-xs text-slate-400 py-6 border border-dashed border-slate-700 rounded-xl">ยังไม่มีชุดไพ่เกิดบนโต๊ะ</div>`;
+      } else {
+        meldsContainer.innerHTML = G.melds.map((m, mIdx) => {
+          const canLayoffSelected = isMyTurn && G.phase === 'ACTION' && me?.hasMelded && selectedHandIds.size === 1 &&
+            canCardLayOffOnMeld(me.hand.find(c => c.id === Array.from(selectedHandIds)[0]), m);
+          return `
+            <div onclick="handleLayoffOnMeld(${mIdx})" class="meld-box ${canLayoffSelected ? 'active-target' : ''}">
+              <div class="flex justify-between text-[11px] text-slate-300 mb-1">
+                <span class="font-semibold text-amber-300">ชุดของ ${m.ownerName}</span>
+                <span>${m.type === 'GROUP' ? 'ชุดตอง' : 'ชุดเรียง'} ${canLayoffSelected ? '✨ คลิกฝากได้!' : ''}</span>
+              </div>
+              <div class="flex items-center gap-1 overflow-x-auto py-1">
+                ${m.cards.map(c => renderCardHTML(c)).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 6. My Hand & Buttons
+      if (me) {
+        document.getElementById('myMeldBadge').textContent = me.hasMelded ? '✅ เกิดแล้ว (ฝากไพ่/น็อกได้)' : 'ยังไม่ได้เกิด';
+        document.getElementById('myMeldBadge').className = me.hasMelded
+          ? 'text-xs px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300 border border-emerald-600/50'
+          : 'text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+
+        document.getElementById('btnDraw').disabled = !(isMyTurn && G.phase === 'DRAW');
+        document.getElementById('btnTakeDiscard').disabled = !(isMyTurn && G.phase === 'DRAW' && selectedDiscardId && selectedHandIds.size >= 2);
+        document.getElementById('btnMeldHand').disabled = !(isMyTurn && G.phase === 'ACTION' && selectedHandIds.size >= 3);
+        document.getElementById('btnDiscard').disabled = !(isMyTurn && G.phase === 'ACTION' && selectedHandIds.size === 1);
+
+        const canKnock = isMyTurn && G.phase === 'ACTION' && me.hasMelded && me.hand.length === 1;
+        document.getElementById('btnKnock').classList.toggle('hidden', !canKnock);
+
+        const handContainer = document.getElementById('myHandContainer');
+        handContainer.innerHTML = me.hand.map(c => {
+          const isSel = selectedHandIds.has(c.id);
+          let hintType = null;
+          let topLabel = null;
+          let topBadgeColor = '';
+          let bottomLabel = null;
+
+          if (hints) {
+            if (hints.layoffCardIds.has(c.id)) {
+              hintType = 'layoff';
+              topLabel = '✨ ฝากได้';
+              topBadgeColor = 'bg-sky-400 text-slate-950';
+            } else if (hints.meldCardIds.has(c.id)) {
+              hintType = 'meld';
+              topLabel = 'ชุดเกิด';
+              topBadgeColor = 'bg-emerald-400 text-slate-950';
+            }
+            if (hints.dangerIds.has(c.id)) {
+              if (!hintType) hintType = 'danger';
+              bottomLabel = '⚠️ เสี่ยง-50';
+            }
+          }
+
+          return renderCardHTML(c, {
+            selected: isSel,
+            hintType,
+            topLabel,
+            topBadgeColor,
+            bottomLabel,
+            onClick: `toggleSelectHand('${c.id}')`
+          });
+        }).join('');
+      }
+
+      // 7. Summary Modal if Game Ended
+      if (G.phase === 'ENDED' && G.winnerInfo) {
+        showSummaryModal(G.winnerInfo);
+      }
+    }
+
+    function toggleSelectHand(cardId) {
+      if (selectedHandIds.has(cardId)) selectedHandIds.delete(cardId);
+      else selectedHandIds.add(cardId);
+      renderAll();
+    }
+
+    function toggleSelectDiscard(cardId) {
+      selectedDiscardId = (selectedDiscardId === cardId) ? null : cardId;
+      renderAll();
+    }
+
+    function showSummaryModal(info) {
+      document.getElementById('summaryModal').classList.remove('hidden');
+      document.getElementById('summaryReason').textContent = info.reason === 'KNOCK'
+        ? `🎉 ${info.knockInfo.winnerName} น็อกสำเร็จด้วยไพ่ ${info.knockInfo.knockCard.rank}${info.knockInfo.knockCard.knockCard?.suit || info.knockInfo.knockCard.suit} (+50 แต้ม)`
+        : 'ไพ่ในกองจั่วหมด! คำนวณแต้มรวมของทุกคน';
+
+      const sorted = [...info.results].sort((a, b) => b.total - a.total);
+      document.getElementById('summaryTable').innerHTML = sorted.map((r, i) => `
+        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <div>
+            <div class="font-bold text-sm ${i === 0 ? 'text-amber-400' : 'text-white'}">${i === 0 ? '👑 ' : ''}${r.name}</div>
+            <div class="text-[11px] text-slate-400">
+              แต้มเกิด/ฝาก: +${r.meldPts} | ไพ่คามือ: ${r.handMinus} | โบนัส/ค่าปรับ: ${r.bonusAndPenalty}
+            </div>
+          </div>
+          <div class="text-lg font-extrabold ${r.total >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${r.total} แต้ม</div>
+        </div>
+      `).join('');
+    }
+
+    function closeSummaryModal() {
+      document.getElementById('summaryModal').classList.add('hidden');
+    }
+
+    function showToast(msg, level = 'info') {
+      const box = document.getElementById('toastBox');
+      const el = document.createElement('div');
+      const colors = level === 'error'
+        ? 'bg-rose-950 border-rose-500 text-rose-200'
+        : (level === 'warn' ? 'bg-amber-950 border-amber-500 text-amber-200' : 'bg-slate-900 border-emerald-500 text-emerald-200');
+      el.className = `px-3.5 py-2 rounded-xl border shadow-xl text-xs md:text-sm font-medium transition-all ${colors}`;
+      el.textContent = msg;
+      box.appendChild(el);
+      setTimeout(() => el.remove(), 3600);
+    }
+
+    // Start single-player immediately on load
+    window.addEventListener('DOMContentLoaded', () => {
+      initSinglePlayerGame();
+    });
+  </script>
 </body>
 </html>
